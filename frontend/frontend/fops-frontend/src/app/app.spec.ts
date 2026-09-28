@@ -16,8 +16,10 @@ describe('App', () => {
     expect(links).toEqual([
       ['Dashboard', '/dashboard'],
       ['Orders', '/orders'],
-      ['Inventory', '/inventory']
+      ['Inventory', '/inventory'],
+      ['Catalog', '/catalog']
     ]);
+    expect(host.querySelector('app-confirm-dialog')).not.toBeNull();
     expect(host.querySelector('router-outlet')).not.toBeNull();
     expect(host.querySelector('app-toast-outlet')).not.toBeNull();
   });

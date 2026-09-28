@@ -68,6 +68,30 @@ export class ApiService {
     return this.http.post<Order>(`${this.baseUrl}/orders`, payload);
   }
 
+  updateUser(id: number, payload: { name: string; email: string }): Observable<User> {
+    return this.http.put<User>(`${this.baseUrl}/users/${id}`, payload);
+  }
+
+  deleteUser(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/users/${id}`);
+  }
+
+  updateItem(id: number, payload: { name: string; sku: string }): Observable<Item> {
+    return this.http.put<Item>(`${this.baseUrl}/items/${id}`, payload);
+  }
+
+  deleteItem(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/items/${id}`);
+  }
+
+  updateMovement(id: number, payload: { reason: string }): Observable<InventoryMovement> {
+    return this.http.put<InventoryMovement>(`${this.baseUrl}/inventory/movements/${id}`, payload);
+  }
+
+  deleteMovement(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/inventory/movements/${id}`);
+  }
+
   registerIncomingInventory(payload: { itemId: number; quantity: number; reason: string }): Observable<InventoryMovement> {
     return this.http.post<InventoryMovement>(`${this.baseUrl}/inventory/incoming`, payload);
   }

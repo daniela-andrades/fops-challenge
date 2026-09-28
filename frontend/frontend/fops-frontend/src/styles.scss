@@ -162,6 +162,34 @@ button {
     background: var(--accent-soft);
     color: var(--accent);
   }
+
+  &.danger {
+    background: var(--danger);
+    color: #fff;
+  }
+
+  &.inline {
+    width: auto;
+    padding: 6px 10px;
+    font-size: 0.82rem;
+  }
+
+  &.danger-soft {
+    background: var(--danger-soft);
+    color: var(--danger);
+  }
+}
+
+.row-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+td input {
+  padding: 7px 10px;
+  min-width: 120px;
 }
 
 .filters {
