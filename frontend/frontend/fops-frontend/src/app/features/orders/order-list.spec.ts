@@ -1,0 +1,57 @@
+import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
+import { of } from 'rxjs';
+import { ApiMock, createApiMock, provideApiMock } from '../../../testing/api-mock';
+import { anItem, anOrder, aUser } from '../../../testing/fixtures';
+import { OrderListPage } from './order-list';
+
+describe('OrderListPage', () => {
+  let api: ApiMock;
+
+  beforeEach(() => {
+    api = createApiMock();
+    api.getUsers.mockReturnValue(of([aUser({ id: 1, name: 'Ana' })]));
+    api.getItems.mockReturnValue(of([anItem({ id: 1, name: 'Laptop' })]));
+    api.getOrders.mockReturnValue(of([
+      anOrder({ id: 2, status: 'PARTIALLY_FULFILLED', fulfilledQuantity: 4, remainingQuantity: 6, completionPercent: 40 }),
+      anOrder({ id: 1, itemId: 99, status: 'COMPLETED', fulfilledQuantity: 10, remainingQuantity: 0, completionPercent: 100 })
+    ]));
+    TestBed.configureTestingModule({ providers: [provideRouter([]), provideApiMock(api)] });
+  });
+
+  function render() {
+    const fixture = TestBed.createComponent(OrderListPage);
+    fixture.detectChanges();
+    return { fixture, page: fixture.componentInstance, host: fixture.nativeElement as HTMLElement };
+  }
+
+  it('renders one row per order with names, quantities and progress', () => {
+    const { host } = render();
+
+    const rows = host.querySelectorAll('tbody tr');
+    expect(rows).toHaveLength(2);
+    const cells = Array.from(rows[0].querySelectorAll('td')).map((td) => td.textContent!.trim());
+    expect(cells.slice(0, 7)).toEqual(['#2', 'Ana', 'Laptop', 'Partial', '10', '4', '6']);
+    expect(rows[0].querySelector('app-progress-bar')).not.toBeNull();
+    expect(host.querySelector('.page-header')!.textContent).toContain('2 orders');
+  });
+
+  it('falls back to ids for unknown items', () => {
+    expect(render().host.querySelectorAll('tbody tr')[1].textContent).toContain('Item #99');
+  });
+
+  it('reloads with the selected filters', () => {
+    const { page } = render();
+
+    page.filters = { userId: 1, itemId: null, status: 'COMPLETED' };
+    page.load();
+
+    expect(api.getOrders).toHaveBeenLastCalledWith({ userId: 1, itemId: null, status: 'COMPLETED' });
+  });
+
+  it('shows an empty state', () => {
+    api.getOrders.mockReturnValue(of([]));
+
+    expect(render().host.querySelector('.empty')?.textContent).toContain('No orders match these filters');
+  });
+});
