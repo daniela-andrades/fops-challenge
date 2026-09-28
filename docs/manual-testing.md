@@ -17,6 +17,8 @@ scripts/dev.sh seed    # loads the demo data below
 | API | http://localhost:8080/api |
 | Database console | http://localhost:8080/h2-console (JDBC URL is printed by `dev.sh up`, user `sa`, no password) |
 
+The scenarios build on each other; 13 and 14 can run at any point after the seed.
+
 Other commands: `scripts/dev.sh status`, `down`, `logs backend|frontend|mail`, `mail-stop`, `mail-start`.
 
 For manual testing, email retries are shortened to 10 s, 20 s, 40 s and 4 attempts. Production defaults are 30 s base delay and 5 attempts.
@@ -180,6 +182,39 @@ Narrow the browser to phone width (or use device mode in DevTools).
 - KPI cards wrap two per row, and tables scroll inside their panel.
 - Navigation stays usable.
 
+## 13. Catalog maintenance (update and delete)
+
+1. Open **Catalog**, click **Edit** on Luis, change his email to `LUIS.P@fops.local` and save.
+2. Try changing Marta's email to `ana@fops.local`.
+3. Click **Delete** on Ana and confirm.
+4. Create a user on the dashboard, then delete them from the Catalog. Cancel once in the dialog before confirming.
+5. Edit the Mouse item: rename it and change its SKU to `mou-002`.
+6. Try deleting Laptop. Then create an item with 0 stock on the dashboard and delete it.
+
+**Expected**
+- Step 1: the email is saved lowercased, and Luis's orders keep pointing to him.
+- Step 2: "A user with this email already exists: ana@fops.local".
+- Step 3: "User 1 has orders and cannot be deleted". Users with orders are kept, because their orders and emails depend on them.
+- Step 4: cancelling (the button, a click outside the dialog, or Escape) changes nothing. Confirming removes the user.
+- Step 5: the SKU is saved uppercased and the stock is unchanged. Stock is never editable here.
+- Step 6: Laptop is refused ("…has orders or inventory movements and cannot be deleted"). The unused item is deleted.
+
+## 14. Movement corrections
+
+1. Register incoming stock for Mouse (quantity 30, reason "Typo") and open that movement from Inventory.
+2. Edit its reason to "Duplicated delivery note".
+3. Click **Delete movement** and confirm.
+4. Open incoming movement #6 (the keyboards that fed order #3), and any OUT movement.
+5. Register incoming stock for an item, create an order that consumes it all, then try deleting that incoming movement through the API:
+   `curl -X DELETE localhost:8080/api/inventory/movements/<id>`
+
+**Expected**
+- Step 2: the reason updates. Quantity and item cannot be edited, because they are the ledger.
+- Step 3: the page returns to Inventory with "Movement #… deleted", and Mouse stock drops back by 30.
+- Step 4: neither offers deletion. #6 says its stock was already allocated to orders; the OUT movement says it only changes through its order.
+- Step 5: the API returns 422 "…only 0 of its N units are still in stock".
+- In the database console, the ledger query from scenario 10 still returns no rows.
+
 ---
 
 ## Checklist
@@ -198,3 +233,5 @@ Narrow the browser to phone width (or use device mode in DevTools).
 | 10 | Database integrity | ☐ | |
 | 11 | Persistence and reset | ☐ | |
 | 12 | Layout on small screens | ☐ | |
+| 13 | Catalog maintenance (update and delete) | ☐ | |
+| 14 | Movement corrections | ☐ | |
