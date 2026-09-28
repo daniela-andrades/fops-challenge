@@ -24,5 +24,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/inventory/movement-detail').then((m) => m.MovementDetailPage),
     title: 'Movement detail · Fusion Operations'
   },
+  {
+    path: 'catalog',
+    loadComponent: () => import('./features/catalog/catalog').then((m) => m.CatalogPage),
+    title: 'Catalog · Fusion Operations'
+  },
   { path: '**', redirectTo: 'dashboard' }
 ];

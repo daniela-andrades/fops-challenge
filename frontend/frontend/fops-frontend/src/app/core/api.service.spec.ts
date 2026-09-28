@@ -51,6 +51,29 @@ describe('ApiService', () => {
     http.expectOne('/api/dashboard/summary').flush({});
   });
 
+  it('updates and deletes master data and movements', () => {
+    api.updateUser(3, { name: 'Ana', email: 'ana@test.local' }).subscribe();
+    api.deleteUser(3).subscribe();
+    api.updateItem(4, { name: 'Laptop', sku: 'LAP-1' }).subscribe();
+    api.deleteItem(4).subscribe();
+    api.updateMovement(5, { reason: 'Supplier A' }).subscribe();
+    api.deleteMovement(5).subscribe();
+
+    const expectations: [string, string, unknown][] = [
+      ['/api/users/3', 'PUT', { name: 'Ana', email: 'ana@test.local' }],
+      ['/api/users/3', 'DELETE', null],
+      ['/api/items/4', 'PUT', { name: 'Laptop', sku: 'LAP-1' }],
+      ['/api/items/4', 'DELETE', null],
+      ['/api/inventory/movements/5', 'PUT', { reason: 'Supplier A' }],
+      ['/api/inventory/movements/5', 'DELETE', null]
+    ];
+    for (const [url, method, body] of expectations) {
+      const req = http.expectOne((r) => r.url === url && r.method === method);
+      expect(req.request.body).toEqual(body);
+      req.flush(null);
+    }
+  });
+
   it('posts create and command payloads', () => {
     api.createOrder({ userId: 1, itemId: 2, requestedQuantity: 3 }).subscribe();
     api.registerIncomingInventory({ itemId: 2, quantity: 5, reason: 'Supplier' }).subscribe();
