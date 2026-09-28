@@ -1,0 +1,14 @@
+<header class="nav">
+  <a routerLink="/dashboard" class="brand">Fusion Operations</a>
+  <nav>
+    <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
+    <a routerLink="/orders" routerLinkActive="active">Orders</a>
+    <a routerLink="/inventory" routerLinkActive="active">Inventory</a>
+  </nav>
+</header>
+
+<main>
+  <router-outlet />
+</main>
+
+<app-toast-outlet />
