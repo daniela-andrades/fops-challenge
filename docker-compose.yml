@@ -1,0 +1,62 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: fops-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: fops
+      POSTGRES_USER: fops
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fops -d fops"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: fops-mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: fops-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+    environment:
+      SERVER_PORT: 8080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/fops
+      SPRING_DATASOURCE_USERNAME: fops
+      SPRING_DATASOURCE_PASSWORD: password
+      MAIL_HOST: mailhog
+      MAIL_PORT: 1025
+      MAIL_FROM: no-reply@fops.local
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build:
+      context: ./frontend/frontend/fops-frontend
+      dockerfile: Dockerfile
+    container_name: fops-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "4200:80"
+
+volumes:
+  postgres_data:
