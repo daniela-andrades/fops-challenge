@@ -2,6 +2,7 @@ package com.fops.api.controller;
 
 import com.fops.api.dto.ItemRequest;
 import com.fops.api.dto.ItemResponse;
+import com.fops.api.dto.ItemUpdateRequest;
 import com.fops.application.item.ItemService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -38,5 +39,16 @@ public class ItemController {
         return ResponseEntity
                 .created(URI.create("/api/items/" + item.getId()))
                 .body(ItemResponse.from(item));
+    }
+
+    @PutMapping("/{id}")
+    public ItemResponse updateItem(@PathVariable Long id, @Valid @RequestBody ItemUpdateRequest request) {
+        return ItemResponse.from(itemService.updateItem(id, request.name(), request.sku()));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteItem(@PathVariable Long id) {
+        itemService.deleteItem(id);
+        return ResponseEntity.noContent().build();
     }
 }

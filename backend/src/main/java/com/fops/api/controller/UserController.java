@@ -39,4 +39,15 @@ public class UserController {
                 .created(URI.create("/api/users/" + user.getId()))
                 .body(UserResponse.from(user));
     }
+
+    @PutMapping("/{id}")
+    public UserResponse updateUser(@PathVariable Long id, @Valid @RequestBody UserRequest request) {
+        return UserResponse.from(userService.updateUser(id, request.getName(), request.getEmail()));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+        userService.deleteUser(id);
+        return ResponseEntity.noContent().build();
+    }
 }

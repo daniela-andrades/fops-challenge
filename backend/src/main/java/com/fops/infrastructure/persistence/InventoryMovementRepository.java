@@ -20,4 +20,8 @@ public interface InventoryMovementRepository extends JpaRepository<InventoryMove
 
     @Query("select m from InventoryMovement m where m.sourceMovement.id = :sourceId order by m.id asc")
     List<InventoryMovement> findBySourceMovementId(@Param("sourceId") Long sourceId);
+
+    boolean existsByItemId(Long itemId);
+
+    boolean existsBySourceMovementId(Long sourceMovementId);
 }

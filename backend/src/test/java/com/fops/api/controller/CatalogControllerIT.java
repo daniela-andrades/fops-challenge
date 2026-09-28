@@ -6,6 +6,8 @@ import com.fops.application.inventory.InventoryService;
 import com.fops.application.item.ItemService;
 import com.fops.application.user.UserService;
 import com.fops.domain.exception.DuplicateResourceException;
+import com.fops.domain.exception.ResourceInUseException;
+import com.fops.domain.exception.ResourceNotFoundException;
 import com.fops.domain.model.InventoryMovement;
 import com.fops.domain.model.Item;
 import org.junit.jupiter.api.Test;
@@ -20,7 +22,9 @@ import static com.fops.support.TestData.item;
 import static com.fops.support.TestData.user;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -121,6 +125,67 @@ class CatalogControllerIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.openDemand").value(7))
                 .andExpect(jsonPath("$.notificationsSent").value(2));
+    }
+
+    @Test
+    void updatesAndDeletesUsers() throws Exception {
+        when(userService.updateUser(3L, "Ana Maria", "ana@test.local")).thenReturn(user(3));
+        mvc.perform(put("/api/users/3").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Ana Maria\",\"email\":\"ana@test.local\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(3));
+
+        mvc.perform(delete("/api/users/3")).andExpect(status().isNoContent());
+        verify(userService).deleteUser(3L);
+    }
+
+    @Test
+    void deletingAResourceInUseIsAConflict() throws Exception {
+        doThrow(new ResourceInUseException("User 3 has orders and cannot be deleted")).when(userService).deleteUser(3L);
+
+        mvc.perform(delete("/api/users/3"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("User 3 has orders and cannot be deleted"));
+    }
+
+    @Test
+    void updatingAMissingResourceIs404() throws Exception {
+        when(itemService.updateItem(eq(99L), any(), any())).thenThrow(new ResourceNotFoundException("Item 99 not found"));
+
+        mvc.perform(put("/api/items/99").contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"X\",\"sku\":\"X-1\"}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void itemUpdateValidatesAndIgnoresStock() throws Exception {
+        mvc.perform(put("/api/items/4").contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"\",\"sku\":\"LAP-1\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors.name").value("Item name is required"));
+
+        when(itemService.updateItem(4L, "Laptop", "LAP-1")).thenReturn(item(4, 7));
+        mvc.perform(put("/api/items/4").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Laptop\",\"sku\":\"LAP-1\",\"stockOnHand\":999}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.stockOnHand").value(7));
+
+        mvc.perform(delete("/api/items/4")).andExpect(status().isNoContent());
+    }
+
+    @Test
+    void movementReasonCanBeEditedAndBlankMeansNoReason() throws Exception {
+        Item item = item(4, 0);
+        when(inventoryService.updateMovementReason(eq(5L), any())).thenReturn(InventoryMovement.incoming(item, 3, "Supplier A"));
+
+        mvc.perform(put("/api/inventory/movements/5").contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"  Supplier A \"}"))
+                .andExpect(status().isOk());
+        verify(inventoryService).updateMovementReason(5L, "Supplier A");
+
+        mvc.perform(put("/api/inventory/movements/5").contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"  \"}"))
+                .andExpect(status().isOk());
+        verify(inventoryService).updateMovementReason(5L, null);
+
+        mvc.perform(delete("/api/inventory/movements/5")).andExpect(status().isNoContent());
+        verify(inventoryService).deleteMovement(5L);
     }
 
     @Test
