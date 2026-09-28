@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+	body {
+		width: 60%;
+		margin: 0 auto;
+	}
+	.center {
+		text-align: center;
+	}
+	#entities ul {
+  		list-style-type: none;
+	}
+</style>
+</head>
+<body>
+	<div id="welcome" class="center">
+		<h2>Welcome to your Fusion Operations Challenge</h2>
+	</div>
+	<div id="intro">
+
+		<p>Thank you for taking the time to participate in this challenge. Please read carefully the instructions below.</p>
+		<p>This exercise is a simple order manager.</p>
+		<p>You should develop a web app where users can create and manage orders. Items can be ordered and orders are automatically fulfilled as soon as the item inventory allows it.</p>
+	</div>
+	</br>
+	<div id="environment">
+		<h2>Development Environment</h2>
+		<p>This environment is already setup with some boilerplate code, namely with the model definition as per the specification and the respective controllers.
+		<p>It's making use of the Play CRUD module, you can find more information about this module on the documentation.</p>
+		<p>Navigate to the <a href="/crud">/crud</a> endpoint to access this module.</p>
+		<p>Feel free to modify the boilerplate code if you think it doesn't adapt to your solution.</p>
+	</div>
+	</br>
+	<div id="specification">
+		<h2>Specification</h2>
+		<p>The system should be able to provide the following features:</p>
+		<ul>
+			<li>When an order is created, it should try to satisfy it with the current inventory.</li>
+			<li>When a inventory movement is created, the system should try to attribute it to an order that isn’t complete.</li>
+			<li>When an order is complete, send a notification by email to the user that created it.</li>
+			<li>Trace the list of inventory movements that were used to complete the order, and vice-versa.</li>
+			<li>Show current completion of each order.</li>
+		</ul>
+	</div>
+	</br>
+	<div id="entities">
+		<h2>Entities</h2>
+		<div id="item">
+			<h3>Item</h3>
+			<ul>
+				<li>name</li>
+			</ul>
+		</div>
+		<div id="inventory-movement">
+			<h3>InventoryMovement</h3>
+			<ul>
+				<li>creationDate</li>
+				<li>Item</li>
+				<li>quantity</li>
+			</ul>
+		</div>
+		<div id="order">
+			<h3>Order</h3>
+			<ul>
+				<li>creationDate</li>
+				<li>Item</li>
+				<li>quantity</li>
+				<li>User (who created the order)</li>
+			</ul>
+		</div>
+		<div id="User">
+			<h3>User</h3>
+			<ul>
+				<li>name</li>
+				<li>email</li>
+			</ul>
+		</div>
+	</div>
+	</br>
+	<div id="requirements">
+		<h3>Requirements</h3>
+		<ul>
+			<li>The app should have a web frontend and a java (or other technology) backend.</li>
+			<li>Use the programming language and tools that you feel more comfortable with.</li>
+			<li>You should provide instructions on how to run the project.</li>
+		</ul>
+	</div>
+	</br>
+	<div id="you-should">
+		<h3>You Should</h3>
+		<p>Provide rough estimates of how much time you’d need to develop this (core development, quality assurance) before the project starts.</p>
+	</div>
+	</br>
+	<p><strong>Play framework 1.5.x</strong> documentation. Check the <a href="https://www.playframework.com/documentation/1.5.x/home">link</a>.</p>
+	<p><strong>Play CRUD module</strong> documentation. Check the <a href="https://www.playframework.com/documentation/1.5.x/crud">link</a>.</p>
+</body>
+</html>
