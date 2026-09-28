@@ -1,0 +1,21 @@
+# Profile shared by every Spring-based integration test (*IT).
+spring:
+  main:
+    banner-mode: off
+  datasource:
+    # Dedicated in-memory database; LOCK_TIMEOUT lets concurrency tests wait on row locks instead of failing fast.
+    url: jdbc:h2:mem:fops-test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=10000
+  jpa:
+    open-in-view: true
+
+fops:
+  notifications:
+    max-attempts: 3
+    retry-base-delay-ms: 60000
+    # The retry scheduler never fires on its own during tests; tests call NotificationService directly.
+    poll-interval-ms: 3600000
+
+logging:
+  level:
+    root: WARN
+    com.fops: INFO
