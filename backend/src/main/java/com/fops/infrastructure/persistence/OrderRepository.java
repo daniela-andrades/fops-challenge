@@ -16,6 +16,10 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
 
     List<Order> findByItem(Item item);
 
+    boolean existsByUserId(Long userId);
+
+    boolean existsByItemId(Long itemId);
+
     long countByStatus(OrderStatus status);
 
     @Query("select coalesce(sum(o.remainingQuantity), 0) from Order o where o.status in :statuses")

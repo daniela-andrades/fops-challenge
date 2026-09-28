@@ -114,4 +114,11 @@ public class InventoryMovement {
     public String getReason() {
         return reason;
     }
+
+    /**
+     * The reason is descriptive metadata; quantity, item and links are immutable to keep the ledger consistent.
+     */
+    public void changeReason(String reason) {
+        this.reason = reason;
+    }
 }

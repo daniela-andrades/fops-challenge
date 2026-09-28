@@ -3,6 +3,7 @@ package com.fops.api.controller;
 import com.fops.api.dto.InventoryMovementDetailResponse;
 import com.fops.api.dto.InventoryMovementRequest;
 import com.fops.api.dto.InventoryMovementResponse;
+import com.fops.api.dto.MovementUpdateRequest;
 import com.fops.application.inventory.InventoryService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +34,18 @@ public class InventoryController {
         return InventoryMovementDetailResponse.from(
                 inventoryService.findMovement(id),
                 inventoryService.findAllocationsFrom(id));
+    }
+
+    @PutMapping("/movements/{id}")
+    public InventoryMovementResponse updateMovement(@PathVariable Long id, @Valid @RequestBody MovementUpdateRequest request) {
+        String reason = request.reason() == null || request.reason().isBlank() ? null : request.reason().trim();
+        return InventoryMovementResponse.from(inventoryService.updateMovementReason(id, reason));
+    }
+
+    @DeleteMapping("/movements/{id}")
+    public ResponseEntity<Void> deleteMovement(@PathVariable Long id) {
+        inventoryService.deleteMovement(id);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/incoming")
