@@ -13,7 +13,8 @@ import { StatusBadge } from '../../shared/components/status-badge';
 const STATUS_LABEL: Record<Order['status'], string> = {
   PENDING: 'pending',
   PARTIALLY_FULFILLED: 'partially fulfilled',
-  COMPLETED: 'completed'
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled'
 };
 
 @Component({
@@ -212,7 +213,9 @@ export class DashboardPage implements OnInit {
   readonly movements = signal<InventoryMovement[]>([]);
   readonly busy = signal(false);
 
-  readonly openOrders = computed(() => this.orders().filter((order) => order.status !== 'COMPLETED').slice(0, 10));
+  readonly openOrders = computed(() =>
+    this.orders().filter((order) => order.status === 'PENDING' || order.status === 'PARTIALLY_FULFILLED').slice(0, 10)
+  );
   readonly latestMovements = computed(() => [...this.movements()].reverse().slice(0, 10));
   private readonly itemsById = computed(() => new Map(this.items().map((item) => [item.id, item])));
 

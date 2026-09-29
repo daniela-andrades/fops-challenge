@@ -5,6 +5,7 @@ const LABELS: Record<OrderStatus | MovementType, string> = {
   PENDING: 'Pending',
   PARTIALLY_FULFILLED: 'Partial',
   COMPLETED: 'Completed',
+  CANCELLED: 'Cancelled',
   IN: 'In',
   OUT: 'Out'
 };
@@ -18,6 +19,7 @@ const LABELS: Record<OrderStatus | MovementType, string> = {
     .PARTIALLY_FULFILLED { background: var(--info-soft); color: var(--info); }
     .COMPLETED, .IN { background: var(--success-soft); color: var(--success); }
     .OUT { background: var(--surface-muted); color: var(--text-muted); }
+    .CANCELLED { background: var(--danger-soft); color: var(--danger); }
   `
 })
 export class StatusBadge {

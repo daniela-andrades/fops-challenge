@@ -43,6 +43,11 @@ export class ApiService {
     return this.http.post<OrderProgress>(`${this.baseUrl}/orders/${orderId}/notification/retry`, {});
   }
 
+  /** Cancels an open order; its allocated units are returned to stock and re-allocated to other open orders. */
+  cancelOrder(orderId: number): Observable<Order> {
+    return this.http.post<Order>(`${this.baseUrl}/orders/${orderId}/cancel`, {});
+  }
+
   getMovements(itemId?: number | null): Observable<InventoryMovement[]> {
     const params = itemId ? new HttpParams().set('itemId', itemId) : undefined;
     return this.http.get<InventoryMovement[]>(`${this.baseUrl}/inventory/movements`, { params });

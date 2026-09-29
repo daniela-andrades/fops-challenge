@@ -1,6 +1,7 @@
 package com.fops.api.dto;
 
 import com.fops.application.order.OrderProgress;
+import com.fops.domain.enums.MovementType;
 import com.fops.domain.enums.NotificationStatus;
 import com.fops.domain.enums.OrderStatus;
 import com.fops.domain.model.InventoryMovement;
@@ -63,6 +64,9 @@ public record OrderProgressResponse(
         List<Allocation> allocations = new ArrayList<>();
         int cumulative = 0;
         for (InventoryMovement movement : progress.movements()) {
+            if (movement.getMovementType() != MovementType.OUT) {
+                continue; // stock returned by a cancellation is not an allocation
+            }
             cumulative += movement.getQuantity();
             allocations.add(new Allocation(
                     movement.getId(),

@@ -21,6 +21,10 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
 
     Optional<Order> findByRequestId(String requestId);
 
+    /** Reads only the item id, so the item can be locked before the order itself is loaded. */
+    @Query("select o.item.id from Order o where o.id = :id")
+    Optional<Long> findItemIdById(@Param("id") Long id);
+
     boolean existsByItemId(Long itemId);
 
     long countByStatus(OrderStatus status);

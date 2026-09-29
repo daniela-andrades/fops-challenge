@@ -17,4 +17,14 @@ describe('StatusBadge', () => {
     expect(badge.textContent).toBe(label);
     expect(badge.classList).toContain(value);
   });
+
+  it('shows cancelled orders as "Cancelled"', () => {
+    const fixture = TestBed.createComponent(StatusBadge);
+    fixture.componentRef.setInput('value', 'CANCELLED');
+    fixture.detectChanges();
+
+    const badge = (fixture.nativeElement as HTMLElement).querySelector('.badge')!;
+    expect(badge.textContent).toBe('Cancelled');
+    expect(badge.classList).toContain('CANCELLED');
+  });
 });

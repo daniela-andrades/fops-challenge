@@ -1,4 +1,4 @@
-export type OrderStatus = 'PENDING' | 'PARTIALLY_FULFILLED' | 'COMPLETED';
+export type OrderStatus = 'PENDING' | 'PARTIALLY_FULFILLED' | 'COMPLETED' | 'CANCELLED';
 export type MovementType = 'IN' | 'OUT';
 export type NotificationStatus = 'PENDING' | 'SENT' | 'FAILED';
 

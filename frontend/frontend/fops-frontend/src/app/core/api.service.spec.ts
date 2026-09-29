@@ -103,4 +103,12 @@ describe('ApiService', () => {
     expect(retry.request.method).toBe('POST');
     retry.flush({});
   });
+
+  it('cancels an order with a POST to its cancel endpoint', () => {
+    api.cancelOrder(7).subscribe();
+
+    const req = http.expectOne('/api/orders/7/cancel');
+    expect(req.request.method).toBe('POST');
+    req.flush({});
+  });
 });
