@@ -46,6 +46,10 @@ public class InventoryMovement {
 
     private String reason;
 
+    /** Client Idempotency-Key of an incoming delivery; unique, so a retried registration cannot add stock twice. */
+    @Column(name = "request_id", length = 64, unique = true)
+    private String requestId;
+
     protected InventoryMovement() {
     }
 
@@ -113,6 +117,14 @@ public class InventoryMovement {
 
     public String getReason() {
         return reason;
+    }
+
+    public String getRequestId() {
+        return requestId;
+    }
+
+    public void assignRequestId(String requestId) {
+        this.requestId = requestId;
     }
 
     /**

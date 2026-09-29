@@ -39,6 +39,10 @@ public class Order {
 
     private LocalDateTime completedAt;
 
+    /** Client Idempotency-Key; the unique constraint makes a retried creation fail instead of duplicating the order. */
+    @Column(name = "request_id", length = 64, unique = true)
+    private String requestId;
+
     protected Order() {
     }
 
@@ -89,6 +93,14 @@ public class Order {
 
     public LocalDateTime getCompletedAt() {
         return completedAt;
+    }
+
+    public String getRequestId() {
+        return requestId;
+    }
+
+    public void assignRequestId(String requestId) {
+        this.requestId = requestId;
     }
 
     public boolean isOpen() {

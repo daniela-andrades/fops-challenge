@@ -74,6 +74,17 @@ describe('ApiService', () => {
     }
   });
 
+  it('sends the Idempotency-Key header on order creation only when a key is given', () => {
+    api.createOrder({ userId: 1, itemId: 2, requestedQuantity: 3 }, 'key-1').subscribe();
+    api.createOrder({ userId: 1, itemId: 2, requestedQuantity: 3 }).subscribe();
+
+    const [withKey, withoutKey] = http.match('/api/orders');
+    expect(withKey.request.headers.get('Idempotency-Key')).toBe('key-1');
+    expect(withoutKey.request.headers.has('Idempotency-Key')).toBe(false);
+    withKey.flush({});
+    withoutKey.flush({});
+  });
+
   it('posts create and command payloads', () => {
     api.createOrder({ userId: 1, itemId: 2, requestedQuantity: 3 }).subscribe();
     api.registerIncomingInventory({ itemId: 2, quantity: 5, reason: 'Supplier' }).subscribe();
