@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
   DashboardSummary,
@@ -64,8 +64,13 @@ export class ApiService {
     return this.http.post<Item>(`${this.baseUrl}/items`, payload);
   }
 
-  createOrder(payload: { userId: number; itemId: number; requestedQuantity: number }): Observable<Order> {
-    return this.http.post<Order>(`${this.baseUrl}/orders`, payload);
+  /**
+   * With an idempotencyKey, re-sending the same order (retry, double submit) returns the original order
+   * instead of creating a second one.
+   */
+  createOrder(payload: { userId: number; itemId: number; requestedQuantity: number }, idempotencyKey?: string): Observable<Order> {
+    const headers = idempotencyKey ? new HttpHeaders({ 'Idempotency-Key': idempotencyKey }) : undefined;
+    return this.http.post<Order>(`${this.baseUrl}/orders`, payload, { headers });
   }
 
   updateUser(id: number, payload: { name: string; email: string }): Observable<User> {

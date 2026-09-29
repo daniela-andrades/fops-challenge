@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class OrderService {
@@ -49,6 +50,15 @@ public class OrderService {
      */
     @Transactional
     public Order createOrder(Long userId, Long itemId, Integer requestedQuantity) {
+        return createOrder(userId, itemId, requestedQuantity, null);
+    }
+
+    /**
+     * Same as {@link #createOrder(Long, Long, Integer)}, tagged with the client's Idempotency-Key. The order row is
+     * inserted before any stock is touched, so a duplicate key fails on the unique constraint with no allocation.
+     */
+    @Transactional
+    public Order createOrder(Long userId, Long itemId, Integer requestedQuantity, String requestId) {
         if (requestedQuantity == null || requestedQuantity <= 0) {
             throw new BusinessRuleException("Order quantity must be greater than 0");
         }
@@ -59,7 +69,9 @@ public class OrderService {
         Item item = itemRepository.findByIdForUpdate(itemId)
                 .orElseThrow(() -> new ResourceNotFoundException("Item " + itemId + " not found"));
 
-        Order order = orderRepository.save(new Order(user, item, requestedQuantity));
+        Order newOrder = new Order(user, item, requestedQuantity);
+        newOrder.assignRequestId(requestId);
+        Order order = orderRepository.save(newOrder);
         fulfillmentService.fulfillFromStock(order, item);
         return order;
     }
@@ -80,6 +92,11 @@ public class OrderService {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), status));
         }
         return orderRepository.findAll(spec, Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")));
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Order> findByRequestId(String requestId) {
+        return orderRepository.findByRequestId(requestId);
     }
 
     @Transactional(readOnly = true)

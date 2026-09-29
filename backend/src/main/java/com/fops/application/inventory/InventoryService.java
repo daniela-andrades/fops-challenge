@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class InventoryService {
@@ -34,6 +35,15 @@ public class InventoryService {
      */
     @Transactional
     public InventoryMovement registerIncomingInventory(Long itemId, Integer quantity, String reason) {
+        return registerIncomingInventory(itemId, quantity, reason, null);
+    }
+
+    /**
+     * Same as {@link #registerIncomingInventory(Long, Integer, String)}, tagged with the client's Idempotency-Key.
+     * The movement row is inserted before its stock is allocated, so a duplicate key fails with nothing allocated.
+     */
+    @Transactional
+    public InventoryMovement registerIncomingInventory(Long itemId, Integer quantity, String reason, String requestId) {
         if (quantity == null || quantity <= 0) {
             throw new BusinessRuleException("Inventory quantity must be greater than 0");
         }
@@ -42,7 +52,9 @@ public class InventoryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Item " + itemId + " not found"));
 
         item.increaseStock(quantity);
-        InventoryMovement incoming = inventoryMovementRepository.save(InventoryMovement.incoming(item, quantity, reason));
+        InventoryMovement newMovement = InventoryMovement.incoming(item, quantity, reason);
+        newMovement.assignRequestId(requestId);
+        InventoryMovement incoming = inventoryMovementRepository.save(newMovement);
 
         fulfillmentService.allocateToOpenOrders(item, incoming);
         return incoming;
@@ -81,6 +93,11 @@ public class InventoryService {
         }
         item.decreaseStock(movement.getQuantity());
         inventoryMovementRepository.delete(movement);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<InventoryMovement> findByRequestId(String requestId) {
+        return inventoryMovementRepository.findByRequestId(requestId);
     }
 
     @Transactional(readOnly = true)

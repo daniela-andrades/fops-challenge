@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecificationExecutor<Order> {
 
@@ -17,6 +18,8 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     List<Order> findByItem(Item item);
 
     boolean existsByUserId(Long userId);
+
+    Optional<Order> findByRequestId(String requestId);
 
     boolean existsByItemId(Long itemId);
 
