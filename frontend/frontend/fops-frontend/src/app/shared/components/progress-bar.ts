@@ -19,6 +19,7 @@ import { OrderStatus } from '../../core/models';
     .fill { height: 100%; border-radius: inherit; background: var(--accent); transition: width .4s ease; }
     .fill.PARTIALLY_FULFILLED { background: var(--info); }
     .fill.COMPLETED { background: var(--success); }
+    .fill.CANCELLED { background: var(--text-muted); }
     .label { font-variant-numeric: tabular-nums; font-size: .82rem; color: var(--text-muted); min-width: 3.5em; text-align: right; }
   `
 })

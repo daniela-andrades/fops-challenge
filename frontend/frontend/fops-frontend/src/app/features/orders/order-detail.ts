@@ -2,6 +2,7 @@ import { Component, DestroyRef, effect, inject, input, numberAttribute, signal }
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api.service';
+import { ConfirmService } from '../../core/confirm.service';
 import { ToastService } from '../../core/toast.service';
 import { OrderProgress } from '../../core/models';
 import { ProgressBar } from '../../shared/components/progress-bar';
@@ -44,6 +45,27 @@ import { StatusBadge } from '../../shared/components/status-badge';
           </dl>
         </section>
 
+        @if (p.status === 'CANCELLED') {
+          <section class="panel cancelled-note">
+            <h2>Cancelled</h2>
+            <p class="muted">
+              @if (p.fulfilledQuantity > 0) {
+                The {{ p.fulfilledQuantity }} units allocated before the cancellation were returned to stock and made available to other open orders.
+              } @else {
+                Nothing had been allocated to this order, so no stock was returned.
+              }
+            </p>
+          </section>
+        } @else if (p.status === 'PENDING' || p.status === 'PARTIALLY_FULFILLED') {
+          <section class="panel manage">
+            <h2>Cancel order</h2>
+            <p class="muted">Withdraws the order. Stock already allocated to it goes back to stock; nothing is deleted.</p>
+            <button type="button" class="danger cancel-order" (click)="cancelOrder(p)" [disabled]="cancelling()">
+              {{ cancelling() ? 'Cancelling…' : 'Cancel order' }}
+            </button>
+          </section>
+        }
+
         <section class="panel">
           <h2>Completion email</h2>
           @if (p.notification; as n) {
@@ -74,6 +96,8 @@ import { StatusBadge } from '../../shared/components/status-badge';
                 {{ retrying() ? 'Sending…' : 'Retry now' }}
               </button>
             }
+          } @else if (p.status === 'CANCELLED') {
+            <p class="muted">Cancelled orders are not notified.</p>
           } @else {
             <p class="muted">The user is emailed automatically when the order reaches 100%.</p>
           }
@@ -128,6 +152,8 @@ import { StatusBadge } from '../../shared/components/status-badge';
     .tag.failed { background: var(--danger-soft); color: var(--danger); }
     .error { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--danger-soft); color: var(--danger); font-size: .88rem; overflow-wrap: anywhere; }
     .retry { width: auto; align-self: flex-start; }
+    .manage p, .cancelled-note p { margin: 0; }
+    .cancel-order { width: auto; align-self: flex-start; }
   `
 })
 export class OrderDetailPage {
@@ -135,11 +161,13 @@ export class OrderDetailPage {
 
   private readonly api = inject(ApiService);
   private readonly toasts = inject(ToastService);
+  private readonly confirm = inject(ConfirmService);
 
   readonly id = input.required({ transform: numberAttribute });
   readonly progress = signal<OrderProgress | null>(null);
   readonly notFound = signal(false);
   readonly retrying = signal(false);
+  readonly cancelling = signal(false);
   private refreshTimer: ReturnType<typeof setTimeout> | undefined;
 
   constructor() {
@@ -150,6 +178,32 @@ export class OrderDetailPage {
       this.progress.set(null);
       this.notFound.set(false);
       this.load(id);
+    });
+  }
+
+  async cancelOrder(progress: OrderProgress): Promise<void> {
+    const units = progress.fulfilledQuantity;
+    const confirmed = await this.confirm.confirm({
+      title: `Cancel order #${progress.orderId}?`,
+      message: units > 0
+        ? `Cancelling will return ${units} units to stock. They may be automatically allocated to other pending orders.`
+        : 'Nothing has been allocated to this order yet, so no stock is returned.',
+      confirmLabel: 'Cancel order',
+      danger: true
+    });
+    if (!confirmed) {
+      return;
+    }
+    this.cancelling.set(true);
+    this.api.cancelOrder(progress.orderId).subscribe({
+      next: () => {
+        this.cancelling.set(false);
+        this.toasts.success(units > 0
+          ? `Order #${progress.orderId} cancelled · ${units} units returned to stock`
+          : `Order #${progress.orderId} cancelled`);
+        this.load(progress.orderId);
+      },
+      error: () => this.cancelling.set(false)
     });
   }
 

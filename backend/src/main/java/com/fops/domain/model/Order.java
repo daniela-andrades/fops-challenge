@@ -2,6 +2,7 @@ package com.fops.domain.model;
 
 import com.fops.domain.enums.OrderStatus;
 import com.fops.domain.exception.BusinessRuleException;
+import com.fops.domain.exception.InvalidOrderStateException;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -38,6 +39,8 @@ public class Order {
     private LocalDateTime createdAt;
 
     private LocalDateTime completedAt;
+
+    private LocalDateTime cancelledAt;
 
     /** Client Idempotency-Key; the unique constraint makes a retried creation fail instead of duplicating the order. */
     @Column(name = "request_id", length = 64, unique = true)
@@ -103,8 +106,27 @@ public class Order {
         this.requestId = requestId;
     }
 
+    public LocalDateTime getCancelledAt() {
+        return cancelledAt;
+    }
+
     public boolean isOpen() {
-        return status != OrderStatus.COMPLETED;
+        return status == OrderStatus.PENDING || status == OrderStatus.PARTIALLY_FULFILLED;
+    }
+
+    /**
+     * Withdraws an open order. Its allocations are returned to stock by the caller through compensating
+     * movements; fulfilledQuantity keeps recording what had been allocated before the cancellation.
+     */
+    public void cancel(LocalDateTime now) {
+        if (status == OrderStatus.COMPLETED) {
+            throw new InvalidOrderStateException("Order " + id + " is already completed and its notification was sent; it cannot be cancelled");
+        }
+        if (status == OrderStatus.CANCELLED) {
+            throw new InvalidOrderStateException("Order " + id + " is already cancelled");
+        }
+        this.status = OrderStatus.CANCELLED;
+        this.cancelledAt = now;
     }
 
     /**
@@ -118,6 +140,9 @@ public class Order {
      * The only way to advance fulfillment: completion derives from stock allocation and is never set by hand.
      */
     public void allocate(int quantity) {
+        if (status == OrderStatus.CANCELLED) {
+            throw new InvalidOrderStateException("Order " + id + " is cancelled and cannot receive stock");
+        }
         if (quantity <= 0) {
             throw new BusinessRuleException("Allocated quantity must be greater than 0");
         }

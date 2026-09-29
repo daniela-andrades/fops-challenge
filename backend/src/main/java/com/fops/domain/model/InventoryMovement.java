@@ -83,6 +83,17 @@ public class InventoryMovement {
         return new InventoryMovement(item, quantity, MovementType.OUT, order, sourceMovement, completesOrder, reason);
     }
 
+    /**
+     * Compensating IN for a cancelled order: puts one of its allocations back in stock, linked to the order.
+     * The original OUT movement is never modified; the correction is always a new, opposite row.
+     */
+    public static InventoryMovement returnToStock(Item item, int quantity, Order order, String reason) {
+        if (order == null) {
+            throw new BusinessRuleException("A stock return must be linked to the cancelled order");
+        }
+        return new InventoryMovement(item, quantity, MovementType.IN, order, null, false, reason);
+    }
+
     public Long getId() {
         return id;
     }

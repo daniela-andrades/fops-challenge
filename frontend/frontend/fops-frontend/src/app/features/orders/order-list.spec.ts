@@ -54,4 +54,16 @@ describe('OrderListPage', () => {
 
     expect(render().host.querySelector('.empty')?.textContent).toContain('No orders match these filters');
   });
+
+  it('keeps cancelled orders visible and lets you filter by them', () => {
+    api.getOrders.mockReturnValue(of([anOrder({ id: 5, status: 'CANCELLED', fulfilledQuantity: 2, completionPercent: 20 })]));
+    const { host, page } = render();
+
+    expect(host.querySelector('tbody tr')!.textContent).toContain('Cancelled');
+    expect(page.statuses.map((s) => s.value)).toContain('CANCELLED');
+
+    page.filters = { userId: null, itemId: null, status: 'CANCELLED' };
+    page.load();
+    expect(api.getOrders).toHaveBeenLastCalledWith({ userId: null, itemId: null, status: 'CANCELLED' });
+  });
 });

@@ -180,4 +180,17 @@ describe('DashboardPage', () => {
     expect(api.createItem).toHaveBeenCalledWith({ name: 'New', sku: 'NEW-1', stockOnHand: 5 });
     expect(toasts.toasts().map((t) => t.message)).toEqual(['Item NEW-1 created with 5 units', 'User Luis created']);
   });
+
+  it('keeps cancelled orders out of the open orders panel', () => {
+    api.getOrders.mockReturnValue(of([
+      anOrder({ id: 1, status: 'CANCELLED', completionPercent: 40 }),
+      anOrder({ id: 2, status: 'PENDING' })
+    ]));
+
+    const { host } = render();
+
+    const rows = host.querySelectorAll('.grid.two section:first-child tbody tr');
+    expect(rows).toHaveLength(1);
+    expect(rows[0].textContent).toContain('#2');
+  });
 });

@@ -2,6 +2,7 @@ package com.fops.api.exception;
 
 import com.fops.domain.exception.BusinessRuleException;
 import com.fops.domain.exception.DuplicateResourceException;
+import com.fops.domain.exception.InvalidOrderStateException;
 import com.fops.domain.exception.ResourceInUseException;
 import com.fops.domain.exception.ResourceNotFoundException;
 import org.slf4j.Logger;
@@ -52,7 +53,7 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.NOT_FOUND, ex.getMessage(), null);
     }
 
-    @ExceptionHandler({DuplicateResourceException.class, ResourceInUseException.class})
+    @ExceptionHandler({DuplicateResourceException.class, ResourceInUseException.class, InvalidOrderStateException.class})
     public ResponseEntity<ApiError> handleConflict(RuntimeException ex) {
         return build(HttpStatus.CONFLICT, ex.getMessage(), null);
     }

@@ -29,7 +29,8 @@ export function createApiMock(): ApiMock {
     updateItem: vi.fn(),
     deleteItem: vi.fn(() => of(undefined)),
     updateMovement: vi.fn(),
-    deleteMovement: vi.fn(() => of(undefined))
+    deleteMovement: vi.fn(() => of(undefined)),
+    cancelOrder: vi.fn()
   } as unknown as ApiMock;
 }
 
