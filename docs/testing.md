@@ -5,7 +5,9 @@ The suite is organised as a pyramid: many fast tests on the business rules, fewe
 | Layer | Where | Tool | Runs with | What it proves |
 |---|---|---|---|---|
 | Domain unit | `backend/src/test/.../domain` | JUnit 5 | `mvn test` | Entity invariants: status transitions, stock never negative, retry backoff |
-| Service unit | `backend/src/test/.../application` (`*Test`) | JUnit 5 + Mockito | `mvn test` | Orchestration: FIFO allocation, email queueing, validation, duplicate checks |
+| Service unit | `backend/src/test/.../application` (`*Test`) | JUnit 5 + Mockito | `mvn test` | Orchestration: FIFO allocation, email queueing, validation, duplicate checks; cancellation locks the item before reading the order and returns each allocation separately; listener and retry scheduler survive failures; exact retry times with a fixed `Clock` |
+| Controller unit | `OrderControllerIdempotencyTest`, `IdempotencyKeyTest` | JUnit 5 + Mockito | `mvn test` | Idempotent creation without Spring: replay with 200, mismatch with 409, non-duplicate violations rethrown |
+| Invariant simulation | `FulfillmentSimulationTest` | JUnit 5 + Mockito (in-memory repositories) | `mvn test` | 25 seeded runs × 400 random orders, deliveries and cancellations through the real services; after every step: stock = ledger and never negative, no over-allocation, FIFO (only the oldest open order can be partial), cancellations return everything, one email per completed order |
 | Persistence | `RepositoryIT` | `@DataJpaTest` + H2 | `mvn verify` | Custom queries, ordering, unique and check constraints |
 | HTTP contract | `*ControllerIT` | `@WebMvcTest` | `mvn verify` | Status codes, payloads, error format; services mocked |
 | Business flows | `FulfillmentFlowIT`, `OrderCompletionNotificationIT` | `@SpringBootTest` + H2 | `mvn verify` | The challenge scenarios end to end, through real services and database |
@@ -56,10 +58,22 @@ npm run e2e:ui          # Playwright interactive mode
 - E2E uses the locally installed Google Chrome (`channel: 'chrome'`), so no browser download is needed.
 - The E2E backend must have JDK 21 available (see above). Each test creates its own uniquely named data, so the suite can run against a backend that already has data.
 
+## Does the simulation catch real bugs?
+
+It was checked by injecting bugs into production code and restoring it afterwards:
+
+| Injected bug | Repetitions that failed |
+|---|---|
+| Allocation serves the newest order first (breaks FIFO) | 25 of 25 |
+| Cancellation marks the order CANCELLED after re-allocating (it receives its own returned stock) | 23 of 25 |
+
+Failures name the seed and step that reproduce them, for example `seed 1, step 102 (deliver 10 of item 3)`.
+
 ## Conventions
 
 - **Naming decides the runner.** `*Test` classes are plain unit tests (Surefire, no Spring context). `*IT` classes load Spring (Failsafe).
 - **Integration tests extend `IntegrationTest`.** It provides one shared, cached Spring context with a mocked `JavaMailSender`, `TestFixtures` for creating data through the real services, and a `DatabaseCleaner` that empties the tables after each test.
-- **Unit tests build data with `TestData`**, which creates in-memory entities with fixed ids.
+- **Unit tests build data with `TestData`**, which creates in-memory entities with fixed ids. Domain objects are never mocked; Mockito is used at service boundaries (and, in the simulation, to back repositories with in-memory maps).
+- **Time comes from an injected `Clock`** in `NotificationService`, so retry schedules are asserted exactly (30 s, 60 s, 120 s…).
 - **Frontend tests build data with `src/testing/fixtures.ts`** (`anOrder({ status: 'COMPLETED' })` and similar) and use `createApiMock()`, where every endpoint succeeds by default and tests override only what they need.
 - **Asynchronous email delivery** is awaited with Awaitility. The retry scheduler is disabled in the `test` profile, and tests trigger it explicitly.
