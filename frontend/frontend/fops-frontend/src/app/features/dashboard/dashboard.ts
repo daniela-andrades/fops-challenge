@@ -99,14 +99,14 @@ const STATUS_LABEL: Record<Order['status'], string> = {
           <input type="text" [(ngModel)]="itemForm.name" name="itemName" placeholder="Item name" required />
           <input type="text" [(ngModel)]="itemForm.sku" name="itemSku" placeholder="SKU" required />
           <input type="number" [(ngModel)]="itemForm.stockOnHand" name="stockOnHand" min="0" placeholder="Initial stock" />
-          <button type="submit" [disabled]="busy()">Save item</button>
+          <button type="submit" [disabled]="busy() || !canSaveItem()">Save item</button>
         </form>
 
         <form class="panel" (ngSubmit)="createUser()">
           <h2>Create user</h2>
           <input type="text" [(ngModel)]="userForm.name" name="userName" placeholder="Name" required />
           <input type="email" [(ngModel)]="userForm.email" name="userEmail" placeholder="Email" required />
-          <button type="submit" [disabled]="busy()">Save user</button>
+          <button type="submit" [disabled]="busy() || !canSaveUser()">Save user</button>
         </form>
       </div>
 
@@ -197,6 +197,7 @@ const STATUS_LABEL: Record<Order['status'], string> = {
   `,
   styles: `
     .panel-title { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+    form.panel h2 { text-align: center; }
     .tag { margin-left: 6px; }
     .failed { color: var(--danger); font-weight: 700; }
   `
@@ -246,7 +247,22 @@ export class DashboardPage implements OnInit {
     });
   }
 
+  /** Name and SKU filled in; initial stock empty or not negative. The backend validates again. */
+  canSaveItem(): boolean {
+    const stock = this.itemForm.stockOnHand;
+    const stockOk = stock === null || stock === undefined || (stock as unknown) === '' || Number(stock) >= 0;
+    return !!this.itemForm.name?.trim() && !!this.itemForm.sku?.trim() && stockOk;
+  }
+
+  /** Name filled in and an email of the form name@domain.ext. The backend validates again. */
+  canSaveUser(): boolean {
+    return !!this.userForm.name?.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.userForm.email?.trim() ?? '');
+  }
+
   createUser(): void {
+    if (!this.canSaveUser()) {
+      return;
+    }
     this.run(this.api.createUser({ name: this.userForm.name, email: this.userForm.email }), (user) => {
       this.userForm = { name: '', email: '' };
       this.toasts.success(`User ${user.name} created`);
@@ -254,6 +270,9 @@ export class DashboardPage implements OnInit {
   }
 
   createItem(): void {
+    if (!this.canSaveItem()) {
+      return;
+    }
     const payload = { name: this.itemForm.name, sku: this.itemForm.sku, stockOnHand: Number(this.itemForm.stockOnHand) || 0 };
     this.run(this.api.createItem(payload), (item) => {
       this.itemForm = { name: '', sku: '', stockOnHand: 0 };

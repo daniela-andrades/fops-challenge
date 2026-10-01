@@ -193,4 +193,61 @@ describe('DashboardPage', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].textContent).toContain('#2');
   });
+
+  describe('create item and create user buttons', () => {
+    const button = (host: HTMLElement, label: string) =>
+      Array.from(host.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent!.trim() === label)!;
+
+    async function typeInto(fixture: ReturnType<typeof render>['fixture'], host: HTMLElement, values: Record<string, string>) {
+      for (const [name, value] of Object.entries(values)) {
+        const input = host.querySelector<HTMLInputElement>(`input[name=${name}]`)!;
+        input.value = value;
+        input.dispatchEvent(new Event('input'));
+      }
+      fixture.detectChanges();
+      await fixture.whenStable();
+    }
+
+    it('enables Save item only with a name, a SKU and a non-negative initial stock', async () => {
+      const { fixture, host } = render();
+      await fixture.whenStable();
+      const disabled = () => button(host, 'Save item').disabled;
+
+      expect(disabled()).toBe(true);
+      await typeInto(fixture, host, { itemName: 'Cable', itemSku: '  ' });
+      expect(disabled()).toBe(true);
+      await typeInto(fixture, host, { itemSku: 'CAB-1', stockOnHand: '-1' });
+      expect(disabled()).toBe(true);
+      await typeInto(fixture, host, { stockOnHand: '0' });
+      expect(disabled()).toBe(false);
+      await typeInto(fixture, host, { stockOnHand: '' });
+      expect(disabled()).toBe(false);
+    });
+
+    it('enables Save user only with a name and a valid email', async () => {
+      const { fixture, host } = render();
+      await fixture.whenStable();
+      const disabled = () => button(host, 'Save user').disabled;
+
+      expect(disabled()).toBe(true);
+      await typeInto(fixture, host, { userName: 'Ana', userEmail: 'ana@' });
+      expect(disabled()).toBe(true);
+      await typeInto(fixture, host, { userName: ' ', userEmail: 'ana@fops.local' });
+      expect(disabled()).toBe(true);
+      await typeInto(fixture, host, { userName: 'Ana' });
+      expect(disabled()).toBe(false);
+    });
+
+    it('does not send an incomplete item or user even if submitted', () => {
+      const { page } = render();
+
+      page.itemForm = { name: '', sku: 'CAB-1', stockOnHand: 0 };
+      page.createItem();
+      page.userForm = { name: 'Ana', email: 'not-an-email' };
+      page.createUser();
+
+      expect(api.createItem).not.toHaveBeenCalled();
+      expect(api.createUser).not.toHaveBeenCalled();
+    });
+  });
 });
