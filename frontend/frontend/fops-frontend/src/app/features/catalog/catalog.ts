@@ -40,19 +40,19 @@ import { DEFAULT_PAGE_SIZE, matchesSearch, pageOf } from '../../shared/paginatio
                     <tr class="editing">
                       <td><input [(ngModel)]="userDraft.name" name="userName" aria-label="Name" /></td>
                       <td><input type="email" [(ngModel)]="userDraft.email" name="userEmail" aria-label="Email" /></td>
-                      <td class="row-actions">
+                      <td class="actions"><div class="row-actions">
                         <button type="button" class="inline" (click)="saveUser(user.id)" [disabled]="busy()">Save</button>
                         <button type="button" class="inline secondary" (click)="editingUserId.set(null)">Cancel</button>
-                      </td>
+                      </div></td>
                     </tr>
                   } @else {
                     <tr>
                       <td>{{ user.name }}</td>
                       <td>{{ user.email }}</td>
-                      <td class="row-actions">
+                      <td class="actions"><div class="row-actions">
                         <button type="button" class="inline secondary" (click)="editUser(user)">Edit</button>
                         <button type="button" class="inline danger-soft" (click)="deleteUser(user)" [disabled]="busy()">Delete</button>
-                      </td>
+                      </div></td>
                     </tr>
                   }
                 } @empty {
@@ -89,20 +89,20 @@ import { DEFAULT_PAGE_SIZE, matchesSearch, pageOf } from '../../shared/paginatio
                       <td><input [(ngModel)]="itemDraft.name" name="itemName" aria-label="Item name" /></td>
                       <td><input [(ngModel)]="itemDraft.sku" name="itemSku" aria-label="SKU" /></td>
                       <td class="num">{{ item.stockOnHand }}</td>
-                      <td class="row-actions">
+                      <td class="actions"><div class="row-actions">
                         <button type="button" class="inline" (click)="saveItem(item.id)" [disabled]="busy()">Save</button>
                         <button type="button" class="inline secondary" (click)="editingItemId.set(null)">Cancel</button>
-                      </td>
+                      </div></td>
                     </tr>
                   } @else {
                     <tr>
                       <td>{{ item.name }}</td>
                       <td>{{ item.sku }}</td>
                       <td class="num">{{ item.stockOnHand }}</td>
-                      <td class="row-actions">
+                      <td class="actions"><div class="row-actions">
                         <button type="button" class="inline secondary" (click)="editItem(item)">Edit</button>
                         <button type="button" class="inline danger-soft" (click)="deleteItem(item)" [disabled]="busy()">Delete</button>
-                      </td>
+                      </div></td>
                     </tr>
                   }
                 } @empty {

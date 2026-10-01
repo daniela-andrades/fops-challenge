@@ -184,7 +184,13 @@ button {
   display: flex;
   gap: 6px;
   justify-content: flex-end;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+}
+
+/* Action column: as narrow as its buttons, which always sit side by side */
+td.actions {
+  width: 1%;
+  white-space: nowrap;
 }
 
 td input {
