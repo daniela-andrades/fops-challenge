@@ -128,11 +128,15 @@ Users: Ana Garcia (`ana@fops.local`), Luis Perez (`luis@fops.local`), Marta Ruiz
 | Create order with quantity 0 | "Quantity must be greater than 0" |
 | Create item with SKU `lap-001` (lowercase) | "An item with SKU already exists: LAP-001" |
 | Create user with email `ANA@fops.local` | "A user with this email already exists: ana@fops.local" |
-| Create user with email `ana@` | "Email is not a valid address" |
-| Create item with initial stock -1 | "Initial stock cannot be negative" |
+| Create user with email `ana@` | **Save user** stays disabled. The backend still validates it: `curl -s -X POST localhost:8080/api/users -H 'Content-Type: application/json' -d '{"name":"Ana","email":"ana@"}'` returns 400 "Email is not a valid address" |
+| Create item with initial stock -1 | **Save item** stays disabled. Through the API (`stockOnHand: -1`) the backend returns 400 "Initial stock cannot be negative" |
 | Open http://localhost:4200/orders/999 | "Order 999 not found", and the page says *Order not found.* |
 
-**Also check:** *Create order* stays disabled until both a user and an item are selected, and forms keep their values after an error.
+**Also check:**
+- *Create order* and *Register stock* stay disabled until a user and/or an item are selected.
+- *Save item* stays disabled until there is a name and a SKU and the initial stock is not negative.
+- *Save user* stays disabled until there is a name and a valid email.
+- Forms keep their values after an error.
 
 ## 9. Order filters
 
