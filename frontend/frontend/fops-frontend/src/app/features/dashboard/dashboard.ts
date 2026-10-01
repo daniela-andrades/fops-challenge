@@ -6,6 +6,7 @@ import { Observable, forkJoin, switchMap } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { ToastService } from '../../core/toast.service';
 import { newRequestId } from '../../core/request-id';
+import { emailProblem, isValidEmail } from '../../core/email-validation';
 import { DashboardSummary, InventoryMovement, Item, Order, User } from '../../core/models';
 import { ProgressBar } from '../../shared/components/progress-bar';
 import { StatusBadge } from '../../shared/components/status-badge';
@@ -107,7 +108,11 @@ const STATUS_LABEL: Record<Order['status'], string> = {
         <form class="panel" (ngSubmit)="createUser()">
           <h2>Create user</h2>
           <input type="text" [(ngModel)]="userForm.name" name="userName" placeholder="Name" required />
-          <input type="email" [(ngModel)]="userForm.email" name="userEmail" placeholder="Email" required />
+          <input type="email" [(ngModel)]="userForm.email" name="userEmail" placeholder="Email" required
+                 [class.invalid]="!!emailError()" [attr.aria-invalid]="!!emailError()" aria-describedby="user-email-error" />
+          @if (emailError(); as problem) {
+            <p class="field-error" id="user-email-error" role="alert">{{ problem }}</p>
+          }
           <button type="submit" [disabled]="busy() || !canSaveUser()">Save user</button>
         </form>
       </div>
@@ -207,6 +212,8 @@ const STATUS_LABEL: Record<Order['status'], string> = {
   styles: `
     .panel-title { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
     form.panel h2 { text-align: center; }
+    input.invalid { border-color: var(--danger); background: var(--danger-soft); }
+    .field-error { margin: -4px 0 0; color: var(--danger); font-size: .82rem; font-weight: 600; }
     tr.short td { background: var(--warning-soft); }
     td.demand { white-space: nowrap; }
     .shortfall { margin-left: 6px; display: inline-flex; padding: 2px 8px; border-radius: 999px; font-size: .72rem; font-weight: 700; background: var(--danger-soft); color: var(--danger); }
@@ -281,9 +288,14 @@ export class DashboardPage implements OnInit {
     return !!this.itemForm.name?.trim() && !!this.itemForm.sku?.trim() && stockOk;
   }
 
+  /** Live hint shown under the email field while what was typed is not a valid email. */
+  emailError(): string | null {
+    return emailProblem(this.userForm.email);
+  }
+
   /** Name filled in and an email of the form name@domain.ext. The backend validates again. */
   canSaveUser(): boolean {
-    return !!this.userForm.name?.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.userForm.email?.trim() ?? '');
+    return !!this.userForm.name?.trim() && isValidEmail(this.userForm.email);
   }
 
   createUser(): void {

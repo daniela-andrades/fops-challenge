@@ -314,4 +314,35 @@ describe('DashboardPage', () => {
     fixture.detectChanges();
     expect(card().querySelectorAll('tbody tr')).toHaveLength(3);
   });
+
+  describe('live email validation', () => {
+    async function typeEmail(fixture: ReturnType<typeof render>['fixture'], host: HTMLElement, value: string) {
+      const input = host.querySelector<HTMLInputElement>('input[name=userEmail]')!;
+      input.value = value;
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+      await fixture.whenStable();
+      return {
+        message: host.querySelector('#user-email-error')?.textContent?.trim() ?? null,
+        invalid: input.classList.contains('invalid'),
+        ariaInvalid: input.getAttribute('aria-invalid')
+      };
+    }
+
+    it('says nothing while the field is empty', async () => {
+      const { fixture, host } = render();
+      await fixture.whenStable();
+
+      expect(await typeEmail(fixture, host, '')).toEqual({ message: null, invalid: false, ariaInvalid: 'false' });
+    });
+
+    it('explains the problem in red as the user types and clears it once the email is valid', async () => {
+      const { fixture, host } = render();
+      await fixture.whenStable();
+
+      expect(await typeEmail(fixture, host, 'ana')).toEqual({ message: 'Email must include @', invalid: true, ariaInvalid: 'true' });
+      expect((await typeEmail(fixture, host, 'ana@fops')).message).toBe('Add a domain after the @, e.g. name@example.com');
+      expect(await typeEmail(fixture, host, 'ana@fops.local')).toEqual({ message: null, invalid: false, ariaInvalid: 'false' });
+    });
+  });
 });
