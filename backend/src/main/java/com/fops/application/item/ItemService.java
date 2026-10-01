@@ -6,13 +6,17 @@ import com.fops.domain.exception.DuplicateResourceException;
 import com.fops.domain.exception.ResourceInUseException;
 import com.fops.domain.exception.ResourceNotFoundException;
 import com.fops.domain.model.Item;
+import com.fops.domain.enums.OrderStatus;
 import com.fops.infrastructure.persistence.InventoryMovementRepository;
+import com.fops.infrastructure.persistence.ItemDemand;
 import com.fops.infrastructure.persistence.ItemRepository;
 import com.fops.infrastructure.persistence.OrderRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class ItemService {
@@ -78,6 +82,17 @@ public class ItemService {
             throw new ResourceInUseException("Item " + item.getSku() + " has orders or inventory movements and cannot be deleted");
         }
         itemRepository.delete(item);
+    }
+
+    /**
+     * Outstanding demand per item id (remaining quantity of its PENDING and PARTIALLY_FULFILLED orders).
+     * Items without open orders are absent from the map. Read-only, a single aggregate query.
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, Long> findOutstandingDemandByItem() {
+        return orderRepository.sumRemainingQuantityByItem(List.of(OrderStatus.PENDING, OrderStatus.PARTIALLY_FULFILLED))
+                .stream()
+                .collect(Collectors.toMap(ItemDemand::getItemId, ItemDemand::getDemand));
     }
 
     @Transactional(readOnly = true)

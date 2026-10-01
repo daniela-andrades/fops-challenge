@@ -29,6 +29,11 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
 
     long countByStatus(OrderStatus status);
 
+    /** Units still owed per item, over the given (open) statuses: one aggregate query for every item. */
+    @Query("select o.item.id as itemId, sum(o.remainingQuantity) as demand from Order o "
+            + "where o.status in :statuses group by o.item.id")
+    List<ItemDemand> sumRemainingQuantityByItem(@Param("statuses") List<OrderStatus> statuses);
+
     @Query("select coalesce(sum(o.remainingQuantity), 0) from Order o where o.status in :statuses")
     long sumRemainingQuantityByStatusIn(@Param("statuses") List<OrderStatus> statuses);
 }

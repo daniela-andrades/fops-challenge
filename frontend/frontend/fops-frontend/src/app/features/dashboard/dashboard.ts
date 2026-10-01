@@ -142,17 +142,23 @@ const STATUS_LABEL: Record<Order['status'], string> = {
           <div class="table-wrap">
             <table>
               <thead>
-                <tr><th>Item</th><th>SKU</th><th class="num">Stock</th></tr>
+                <tr><th>Item</th><th>SKU</th><th class="num">Stock</th><th class="num">Demand</th></tr>
               </thead>
               <tbody>
-                @for (item of items(); track item.id) {
-                  <tr>
-                    <td>{{ item.name }}</td>
-                    <td>{{ item.sku }}</td>
-                    <td class="num">{{ item.stockOnHand }}</td>
+                @for (row of inventoryRows(); track row.item.id) {
+                  <tr [class.short]="row.shortfall > 0">
+                    <td>{{ row.item.name }}</td>
+                    <td>{{ row.item.sku }}</td>
+                    <td class="num">{{ row.item.stockOnHand }}</td>
+                    <td class="num demand">
+                      {{ row.demand }}
+                      @if (row.shortfall > 0) {
+                        <span class="shortfall" title="Units to reorder: demand minus stock">short {{ row.shortfall }}</span>
+                      }
+                    </td>
                   </tr>
                 } @empty {
-                  <tr><td colspan="3" class="empty">No items yet.</td></tr>
+                  <tr><td colspan="4" class="empty">No items yet.</td></tr>
                 }
               </tbody>
             </table>
@@ -198,6 +204,9 @@ const STATUS_LABEL: Record<Order['status'], string> = {
   styles: `
     .panel-title { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
     form.panel h2 { text-align: center; }
+    tr.short td { background: var(--warning-soft); }
+    td.demand { white-space: nowrap; }
+    .shortfall { margin-left: 6px; display: inline-flex; padding: 2px 8px; border-radius: 999px; font-size: .72rem; font-weight: 700; background: var(--danger-soft); color: var(--danger); }
     .tag { margin-left: 6px; }
     .failed { color: var(--danger); font-weight: 700; }
   `
@@ -218,6 +227,18 @@ export class DashboardPage implements OnInit {
     this.orders().filter((order) => order.status === 'PENDING' || order.status === 'PARTIALLY_FULFILLED').slice(0, 10)
   );
   readonly latestMovements = computed(() => [...this.movements()].reverse().slice(0, 10));
+  /**
+   * Current inventory rows with outstanding demand and shortfall (units to reorder), items needing stock first.
+   * The sort is stable, so items without a shortfall keep their usual order.
+   */
+  readonly inventoryRows = computed(() =>
+    this.items()
+      .map((item) => {
+        const demand = item.outstandingDemand ?? 0;
+        return { item, demand, shortfall: Math.max(0, demand - item.stockOnHand) };
+      })
+      .sort((a, b) => b.shortfall - a.shortfall)
+  );
   private readonly itemsById = computed(() => new Map(this.items().map((item) => [item.id, item])));
 
   userForm = { name: '', email: '' };

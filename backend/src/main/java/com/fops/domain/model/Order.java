@@ -11,7 +11,9 @@ import java.time.LocalDateTime;
         // FIFO allocation: item_id = ? and status in (open) order by created_at, id — runs under the item lock
         @Index(name = "idx_orders_item_status_created", columnList = "item_id, status, created_at, id"),
         // Foreign key checked when a user is deleted (and existsByUserId)
-        @Index(name = "idx_orders_user", columnList = "user_id")
+        @Index(name = "idx_orders_user", columnList = "user_id"),
+        // Per-item outstanding demand: status in (open) group by item_id summing remaining_quantity — index-only scan
+        @Index(name = "idx_orders_status_item_remaining", columnList = "status, item_id, remaining_quantity")
 })
 public class Order {
 

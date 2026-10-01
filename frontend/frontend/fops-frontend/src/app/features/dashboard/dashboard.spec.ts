@@ -250,4 +250,53 @@ describe('DashboardPage', () => {
       expect(api.createUser).not.toHaveBeenCalled();
     });
   });
+
+  describe('current inventory with outstanding demand', () => {
+    function inventoryRows(host: HTMLElement) {
+      const card = Array.from(host.querySelectorAll('section.panel')).find((s) => s.querySelector('h2')?.textContent === 'Current inventory')!;
+      return Array.from(card.querySelectorAll('tbody tr')).map((row) => ({
+        sku: row.children[1].textContent!.trim(),
+        demand: row.querySelector('td.demand')!.childNodes[0].textContent!.trim(),
+        shortfall: row.querySelector('.shortfall')?.textContent!.trim() ?? null,
+        marked: row.classList.contains('short')
+      }));
+    }
+
+    it('shows 0 demand for items without open orders, never blank', () => {
+      api.getItems.mockReturnValue(of([
+        anItem({ id: 1, sku: 'A', stockOnHand: 5, outstandingDemand: 0 }),
+        anItem({ id: 2, sku: 'B', stockOnHand: 5 })
+      ]));
+
+      const rows = inventoryRows(render().host);
+
+      expect(rows.map((r) => r.demand)).toEqual(['0', '0']);
+      expect(rows.every((r) => !r.marked && r.shortfall === null)).toBe(true);
+    });
+
+    it('marks items whose demand exceeds stock and shows the units to reorder', () => {
+      api.getItems.mockReturnValue(of([
+        anItem({ id: 1, sku: 'COVERED', stockOnHand: 10, outstandingDemand: 4 }),
+        anItem({ id: 2, sku: 'SHORT', stockOnHand: 2, outstandingDemand: 9 })
+      ]));
+
+      const short = inventoryRows(render().host).find((r) => r.sku === 'SHORT')!;
+      const covered = inventoryRows(render().host).find((r) => r.sku === 'COVERED')!;
+
+      expect(short).toEqual({ sku: 'SHORT', demand: '9', shortfall: 'short 7', marked: true });
+      expect(covered).toEqual({ sku: 'COVERED', demand: '4', shortfall: null, marked: false });
+    });
+
+    it('lists the biggest shortfall first and keeps the order of the rest', () => {
+      api.getItems.mockReturnValue(of([
+        anItem({ id: 1, sku: 'FIRST', stockOnHand: 3, outstandingDemand: 0 }),
+        anItem({ id: 2, sku: 'SMALL-GAP', stockOnHand: 0, outstandingDemand: 2 }),
+        anItem({ id: 3, sku: 'SECOND', stockOnHand: 8, outstandingDemand: 8 }),
+        anItem({ id: 4, sku: 'BIG-GAP', stockOnHand: 1, outstandingDemand: 11 }),
+        anItem({ id: 5, sku: 'THIRD', stockOnHand: 0, outstandingDemand: 0 })
+      ]));
+
+      expect(inventoryRows(render().host).map((r) => r.sku)).toEqual(['BIG-GAP', 'SMALL-GAP', 'FIRST', 'SECOND', 'THIRD']);
+    });
+  });
 });

@@ -14,6 +14,8 @@ export interface Item {
   name: string;
   sku: string;
   stockOnHand: number;
+  /** Units still owed to open orders; only present in GET /api/items. */
+  outstandingDemand?: number;
   createdAt?: string;
 }
 
