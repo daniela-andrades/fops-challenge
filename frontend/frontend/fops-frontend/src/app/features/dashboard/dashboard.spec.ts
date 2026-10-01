@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of, throwError } from 'rxjs';
+import { defer, of, Subject, throwError } from 'rxjs';
+import { Order } from '../../core/models';
 import { ToastService } from '../../core/toast.service';
 import { ApiMock, createApiMock, provideApiMock } from '../../../testing/api-mock';
 import { aMovement, aMovementDetail, anItem, anOrder, aSummary, aUser } from '../../../testing/fixtures';
@@ -77,10 +78,50 @@ describe('DashboardPage', () => {
     page.orderForm = { userId: 1, itemId: 2, requestedQuantity: 10 };
     page.createOrder();
 
-    expect(api.createOrder).toHaveBeenCalledWith({ userId: 1, itemId: 2, requestedQuantity: 10 });
+    expect(api.createOrder).toHaveBeenCalledWith({ userId: 1, itemId: 2, requestedQuantity: 10 }, expect.any(String));
     expect(toasts.toasts().at(-1)?.message).toBe('Order #9 created · 70% fulfilled (partially fulfilled)');
     expect(page.orderForm.userId).toBeNull();
     expect(api.getDashboardSummary).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the Idempotency-Key when an order is retried after a failure and renews it after success', () => {
+    api.createOrder
+      .mockReturnValueOnce(throwError(() => new Error('network')))
+      .mockReturnValue(of(anOrder({ id: 9, status: 'COMPLETED', completionPercent: 100 })));
+    const { page } = render();
+
+    page.orderForm = { userId: 1, itemId: 2, requestedQuantity: 3 };
+    page.createOrder();
+    page.createOrder();
+    page.orderForm = { userId: 1, itemId: 2, requestedQuantity: 3 };
+    page.createOrder();
+
+    const keys = api.createOrder.mock.calls.map((call) => call[1]);
+    expect(keys[0]).toEqual(expect.any(String));
+    expect(keys[1]).toBe(keys[0]);
+    expect(keys[2]).not.toBe(keys[0]);
+  });
+
+  it('ignores a second submit while the first order is still in flight', () => {
+    const response = new Subject<Order>();
+    let requestsSent = 0;
+    api.createOrder.mockReturnValue(defer(() => {
+      requestsSent++;
+      return response;
+    }));
+    const { page, fixture, host } = render();
+
+    page.orderForm = { userId: 1, itemId: 2, requestedQuantity: 3 };
+    page.createOrder();
+    page.createOrder();
+    fixture.detectChanges();
+
+    expect(requestsSent).toBe(1);
+    expect(host.querySelector<HTMLButtonElement>('form:first-child button')!.disabled).toBe(true);
+
+    response.next(anOrder({ id: 4 }));
+    response.complete();
+    expect(page.busy()).toBe(false);
   });
 
   it('does not submit an order without user or item', () => {
@@ -138,5 +179,18 @@ describe('DashboardPage', () => {
 
     expect(api.createItem).toHaveBeenCalledWith({ name: 'New', sku: 'NEW-1', stockOnHand: 5 });
     expect(toasts.toasts().map((t) => t.message)).toEqual(['Item NEW-1 created with 5 units', 'User Luis created']);
+  });
+
+  it('keeps cancelled orders out of the open orders panel', () => {
+    api.getOrders.mockReturnValue(of([
+      anOrder({ id: 1, status: 'CANCELLED', completionPercent: 40 }),
+      anOrder({ id: 2, status: 'PENDING' })
+    ]));
+
+    const { host } = render();
+
+    const rows = host.querySelectorAll('.grid.two section:first-child tbody tr');
+    expect(rows).toHaveLength(1);
+    expect(rows[0].textContent).toContain('#2');
   });
 });

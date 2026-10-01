@@ -88,7 +88,8 @@ export class OrderListPage implements OnInit {
   readonly statuses: { value: OrderStatus; label: string }[] = [
     { value: 'PENDING', label: 'Pending' },
     { value: 'PARTIALLY_FULFILLED', label: 'Partially fulfilled' },
-    { value: 'COMPLETED', label: 'Completed' }
+    { value: 'COMPLETED', label: 'Completed' },
+    { value: 'CANCELLED', label: 'Cancelled' }
   ];
 
   filters: OrderFilters = { userId: null, itemId: null, status: null };

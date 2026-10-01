@@ -5,6 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { Observable, forkJoin, switchMap } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { ToastService } from '../../core/toast.service';
+import { newRequestId } from '../../core/request-id';
 import { DashboardSummary, InventoryMovement, Item, Order, User } from '../../core/models';
 import { ProgressBar } from '../../shared/components/progress-bar';
 import { StatusBadge } from '../../shared/components/status-badge';
@@ -12,7 +13,8 @@ import { StatusBadge } from '../../shared/components/status-badge';
 const STATUS_LABEL: Record<Order['status'], string> = {
   PENDING: 'pending',
   PARTIALLY_FULFILLED: 'partially fulfilled',
-  COMPLETED: 'completed'
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled'
 };
 
 @Component({
@@ -211,13 +213,17 @@ export class DashboardPage implements OnInit {
   readonly movements = signal<InventoryMovement[]>([]);
   readonly busy = signal(false);
 
-  readonly openOrders = computed(() => this.orders().filter((order) => order.status !== 'COMPLETED').slice(0, 10));
+  readonly openOrders = computed(() =>
+    this.orders().filter((order) => order.status === 'PENDING' || order.status === 'PARTIALLY_FULFILLED').slice(0, 10)
+  );
   readonly latestMovements = computed(() => [...this.movements()].reverse().slice(0, 10));
   private readonly itemsById = computed(() => new Map(this.items().map((item) => [item.id, item])));
 
   userForm = { name: '', email: '' };
   itemForm = { name: '', sku: '', stockOnHand: 0 };
   orderForm = { userId: null as number | null, itemId: null as number | null, requestedQuantity: 1 };
+  /** Idempotency-Key of the order being filled in: kept across retries, renewed only after a successful submit. */
+  orderRequestId = newRequestId();
   inventoryForm = { itemId: null as number | null, quantity: 1, reason: '' };
 
   ngOnInit(): void {
@@ -260,8 +266,9 @@ export class DashboardPage implements OnInit {
     if (userId === null || itemId === null) {
       return;
     }
-    this.run(this.api.createOrder({ userId, itemId, requestedQuantity: Number(requestedQuantity) }), (order) => {
+    this.run(this.api.createOrder({ userId, itemId, requestedQuantity: Number(requestedQuantity) }, this.orderRequestId), (order) => {
       this.orderForm = { userId: null, itemId: null, requestedQuantity: 1 };
+      this.orderRequestId = newRequestId();
       this.toasts.success(`Order #${order.id} created · ${order.completionPercent}% fulfilled (${STATUS_LABEL[order.status]})`);
     });
   }
@@ -295,6 +302,9 @@ export class DashboardPage implements OnInit {
   }
 
   private run<T>(request: Observable<T>, onSuccess: (result: T) => void): void {
+    if (this.busy()) {
+      return; // a second submit (double Enter) before the button re-renders as disabled
+    }
     this.busy.set(true);
     request.subscribe({
       next: (result) => {

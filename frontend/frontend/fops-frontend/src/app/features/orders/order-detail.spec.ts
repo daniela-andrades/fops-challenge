@@ -3,7 +3,8 @@ import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { ToastService } from '../../core/toast.service';
 import { ApiMock, createApiMock, provideApiMock } from '../../../testing/api-mock';
-import { aNotification, aProgress } from '../../../testing/fixtures';
+import { aNotification, anOrder, aProgress } from '../../../testing/fixtures';
+import { ConfirmService } from '../../core/confirm.service';
 import { OrderDetailPage } from './order-detail';
 
 describe('OrderDetailPage', () => {
@@ -135,5 +136,73 @@ describe('OrderDetailPage', () => {
     api.getOrderProgress.mockReturnValue(throwError(() => new Error('404')));
 
     expect(text(render(99).host)).toContain('Order not found.');
+  });
+
+  describe('cancellation', () => {
+    it('offers cancellation only for pending and partial orders', () => {
+      const button = (status: 'PENDING' | 'PARTIALLY_FULFILLED' | 'COMPLETED' | 'CANCELLED') => {
+        api.getOrderProgress.mockReturnValue(of(aProgress({ status, notification: null })));
+        return render().host.querySelector('button.cancel-order');
+      };
+
+      expect(button('PENDING')).not.toBeNull();
+      expect(button('PARTIALLY_FULFILLED')).not.toBeNull();
+      expect(button('COMPLETED')).toBeNull();
+      expect(button('CANCELLED')).toBeNull();
+    });
+
+    it('states how many units go back to stock and cancels after confirmation', async () => {
+      api.getOrderProgress.mockReturnValue(of(aProgress({ status: 'PARTIALLY_FULFILLED', fulfilledQuantity: 3, notification: null })));
+      api.cancelOrder.mockReturnValue(of(anOrder({ id: 2, status: 'CANCELLED' })));
+      const confirm = TestBed.inject(ConfirmService);
+      const toasts = TestBed.inject(ToastService);
+      const { host } = render();
+
+      host.querySelector<HTMLButtonElement>('button.cancel-order')!.click();
+      expect(confirm.pending()?.message)
+        .toBe('Cancelling will return 3 units to stock. They may be automatically allocated to other pending orders.');
+      confirm.answer(true);
+      await Promise.resolve();
+
+      expect(api.cancelOrder).toHaveBeenCalledWith(2);
+      expect(api.getOrderProgress).toHaveBeenCalledTimes(2);
+      expect(toasts.toasts().at(-1)?.message).toBe('Order #2 cancelled · 3 units returned to stock');
+    });
+
+    it('says no stock is returned when nothing was allocated', async () => {
+      api.getOrderProgress.mockReturnValue(of(aProgress({ status: 'PENDING', fulfilledQuantity: 0, notification: null })));
+      api.cancelOrder.mockReturnValue(of(anOrder({ id: 2, status: 'CANCELLED' })));
+      const confirm = TestBed.inject(ConfirmService);
+      const { page } = render();
+
+      const cancellation = page.cancelOrder(aProgress({ status: 'PENDING', fulfilledQuantity: 0 }));
+      expect(confirm.pending()?.message).toBe('Nothing has been allocated to this order yet, so no stock is returned.');
+      confirm.answer(true);
+      await cancellation;
+
+      expect(api.cancelOrder).toHaveBeenCalledWith(2);
+    });
+
+    it('does nothing when the confirmation is dismissed', async () => {
+      api.getOrderProgress.mockReturnValue(of(aProgress({ status: 'PENDING', fulfilledQuantity: 0, notification: null })));
+      const confirm = TestBed.inject(ConfirmService);
+      const { page } = render();
+
+      const cancellation = page.cancelOrder(aProgress({ status: 'PENDING', fulfilledQuantity: 0 }));
+      confirm.answer(false);
+      await cancellation;
+
+      expect(api.cancelOrder).not.toHaveBeenCalled();
+    });
+
+    it('explains a cancelled order and that it is not notified', () => {
+      api.getOrderProgress.mockReturnValue(of(aProgress({ status: 'CANCELLED', fulfilledQuantity: 5, notification: null })));
+
+      const { host } = render();
+
+      expect(text(host.querySelector('.cancelled-note'))).toContain('The 5 units allocated before the cancellation were returned to stock');
+      expect(text(host)).toContain('Cancelled orders are not notified.');
+      expect(text(host.querySelector('app-status-badge'))).toBe('Cancelled');
+    });
   });
 });

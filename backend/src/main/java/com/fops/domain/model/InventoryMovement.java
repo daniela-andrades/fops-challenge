@@ -6,7 +6,14 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "inventory_movements")
+@Table(name = "inventory_movements", indexes = {
+        // Item history: item_id = ? order by created_at, id
+        @Index(name = "idx_movements_item_created", columnList = "item_id, created_at, id"),
+        // Movements of an order: order_id = ? order by created_at, id — read under the item lock when cancelling
+        @Index(name = "idx_movements_order_created", columnList = "order_id, created_at, id"),
+        // Allocations fed by a delivery, and the foreign-key check PostgreSQL runs when a movement is deleted
+        @Index(name = "idx_movements_source", columnList = "source_movement_id, id")
+})
 public class InventoryMovement {
 
     @Id
@@ -46,6 +53,10 @@ public class InventoryMovement {
 
     private String reason;
 
+    /** Client Idempotency-Key of an incoming delivery; unique, so a retried registration cannot add stock twice. */
+    @Column(name = "request_id", length = 64, unique = true)
+    private String requestId;
+
     protected InventoryMovement() {
     }
 
@@ -77,6 +88,17 @@ public class InventoryMovement {
             throw new BusinessRuleException("An OUT movement must be linked to an order");
         }
         return new InventoryMovement(item, quantity, MovementType.OUT, order, sourceMovement, completesOrder, reason);
+    }
+
+    /**
+     * Compensating IN for a cancelled order: puts one of its allocations back in stock, linked to the order.
+     * The original OUT movement is never modified; the correction is always a new, opposite row.
+     */
+    public static InventoryMovement returnToStock(Item item, int quantity, Order order, String reason) {
+        if (order == null) {
+            throw new BusinessRuleException("A stock return must be linked to the cancelled order");
+        }
+        return new InventoryMovement(item, quantity, MovementType.IN, order, null, false, reason);
     }
 
     public Long getId() {
@@ -113,5 +135,20 @@ public class InventoryMovement {
 
     public String getReason() {
         return reason;
+    }
+
+    public String getRequestId() {
+        return requestId;
+    }
+
+    public void assignRequestId(String requestId) {
+        this.requestId = requestId;
+    }
+
+    /**
+     * The reason is descriptive metadata; quantity, item and links are immutable to keep the ledger consistent.
+     */
+    public void changeReason(String reason) {
+        this.reason = reason;
     }
 }

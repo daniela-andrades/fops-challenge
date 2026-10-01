@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
   DashboardSummary,
@@ -43,6 +43,11 @@ export class ApiService {
     return this.http.post<OrderProgress>(`${this.baseUrl}/orders/${orderId}/notification/retry`, {});
   }
 
+  /** Cancels an open order; its allocated units are returned to stock and re-allocated to other open orders. */
+  cancelOrder(orderId: number): Observable<Order> {
+    return this.http.post<Order>(`${this.baseUrl}/orders/${orderId}/cancel`, {});
+  }
+
   getMovements(itemId?: number | null): Observable<InventoryMovement[]> {
     const params = itemId ? new HttpParams().set('itemId', itemId) : undefined;
     return this.http.get<InventoryMovement[]>(`${this.baseUrl}/inventory/movements`, { params });
@@ -64,8 +69,37 @@ export class ApiService {
     return this.http.post<Item>(`${this.baseUrl}/items`, payload);
   }
 
-  createOrder(payload: { userId: number; itemId: number; requestedQuantity: number }): Observable<Order> {
-    return this.http.post<Order>(`${this.baseUrl}/orders`, payload);
+  /**
+   * With an idempotencyKey, re-sending the same order (retry, double submit) returns the original order
+   * instead of creating a second one.
+   */
+  createOrder(payload: { userId: number; itemId: number; requestedQuantity: number }, idempotencyKey?: string): Observable<Order> {
+    const headers = idempotencyKey ? new HttpHeaders({ 'Idempotency-Key': idempotencyKey }) : undefined;
+    return this.http.post<Order>(`${this.baseUrl}/orders`, payload, { headers });
+  }
+
+  updateUser(id: number, payload: { name: string; email: string }): Observable<User> {
+    return this.http.put<User>(`${this.baseUrl}/users/${id}`, payload);
+  }
+
+  deleteUser(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/users/${id}`);
+  }
+
+  updateItem(id: number, payload: { name: string; sku: string }): Observable<Item> {
+    return this.http.put<Item>(`${this.baseUrl}/items/${id}`, payload);
+  }
+
+  deleteItem(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/items/${id}`);
+  }
+
+  updateMovement(id: number, payload: { reason: string }): Observable<InventoryMovement> {
+    return this.http.put<InventoryMovement>(`${this.baseUrl}/inventory/movements/${id}`, payload);
+  }
+
+  deleteMovement(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/inventory/movements/${id}`);
   }
 
   registerIncomingInventory(payload: { itemId: number; quantity: number; reason: string }): Observable<InventoryMovement> {

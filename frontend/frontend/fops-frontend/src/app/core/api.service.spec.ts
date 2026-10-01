@@ -51,6 +51,40 @@ describe('ApiService', () => {
     http.expectOne('/api/dashboard/summary').flush({});
   });
 
+  it('updates and deletes master data and movements', () => {
+    api.updateUser(3, { name: 'Ana', email: 'ana@test.local' }).subscribe();
+    api.deleteUser(3).subscribe();
+    api.updateItem(4, { name: 'Laptop', sku: 'LAP-1' }).subscribe();
+    api.deleteItem(4).subscribe();
+    api.updateMovement(5, { reason: 'Supplier A' }).subscribe();
+    api.deleteMovement(5).subscribe();
+
+    const expectations: [string, string, unknown][] = [
+      ['/api/users/3', 'PUT', { name: 'Ana', email: 'ana@test.local' }],
+      ['/api/users/3', 'DELETE', null],
+      ['/api/items/4', 'PUT', { name: 'Laptop', sku: 'LAP-1' }],
+      ['/api/items/4', 'DELETE', null],
+      ['/api/inventory/movements/5', 'PUT', { reason: 'Supplier A' }],
+      ['/api/inventory/movements/5', 'DELETE', null]
+    ];
+    for (const [url, method, body] of expectations) {
+      const req = http.expectOne((r) => r.url === url && r.method === method);
+      expect(req.request.body).toEqual(body);
+      req.flush(null);
+    }
+  });
+
+  it('sends the Idempotency-Key header on order creation only when a key is given', () => {
+    api.createOrder({ userId: 1, itemId: 2, requestedQuantity: 3 }, 'key-1').subscribe();
+    api.createOrder({ userId: 1, itemId: 2, requestedQuantity: 3 }).subscribe();
+
+    const [withKey, withoutKey] = http.match('/api/orders');
+    expect(withKey.request.headers.get('Idempotency-Key')).toBe('key-1');
+    expect(withoutKey.request.headers.has('Idempotency-Key')).toBe(false);
+    withKey.flush({});
+    withoutKey.flush({});
+  });
+
   it('posts create and command payloads', () => {
     api.createOrder({ userId: 1, itemId: 2, requestedQuantity: 3 }).subscribe();
     api.registerIncomingInventory({ itemId: 2, quantity: 5, reason: 'Supplier' }).subscribe();
@@ -68,5 +102,13 @@ describe('ApiService', () => {
     const retry = http.expectOne('/api/orders/4/notification/retry');
     expect(retry.request.method).toBe('POST');
     retry.flush({});
+  });
+
+  it('cancels an order with a POST to its cancel endpoint', () => {
+    api.cancelOrder(7).subscribe();
+
+    const req = http.expectOne('/api/orders/7/cancel');
+    expect(req.request.method).toBe('POST');
+    req.flush({});
   });
 });

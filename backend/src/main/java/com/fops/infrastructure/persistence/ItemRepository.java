@@ -21,6 +21,8 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
 
     boolean existsBySkuIgnoreCase(String sku);
 
+    boolean existsBySkuIgnoreCaseAndIdNot(String sku, Long id);
+
     long countByStockOnHand(Integer stockOnHand);
 
     @Query("select coalesce(sum(i.stockOnHand), 0) from Item i")

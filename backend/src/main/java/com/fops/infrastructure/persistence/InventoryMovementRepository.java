@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface InventoryMovementRepository extends JpaRepository<InventoryMovement, Long> {
 
@@ -20,4 +21,10 @@ public interface InventoryMovementRepository extends JpaRepository<InventoryMove
 
     @Query("select m from InventoryMovement m where m.sourceMovement.id = :sourceId order by m.id asc")
     List<InventoryMovement> findBySourceMovementId(@Param("sourceId") Long sourceId);
+
+    boolean existsByItemId(Long itemId);
+
+    Optional<InventoryMovement> findByRequestId(String requestId);
+
+    boolean existsBySourceMovementId(Long sourceMovementId);
 }
