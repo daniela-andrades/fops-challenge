@@ -212,6 +212,8 @@ const STATUS_LABEL: Record<Order['status'], string> = {
   styles: `
     .panel-title { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
     form.panel h2 { text-align: center; }
+    /* Submit buttons sit at the bottom of their card, so the four forms line them up */
+    form.panel > button[type=submit] { margin-top: auto; }
     input.invalid { border-color: var(--danger); background: var(--danger-soft); }
     .field-error { margin: -4px 0 0; color: var(--danger); font-size: .82rem; font-weight: 600; }
     tr.short td { background: var(--warning-soft); }
