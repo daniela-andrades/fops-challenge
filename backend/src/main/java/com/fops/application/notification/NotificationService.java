@@ -7,6 +7,7 @@ import com.fops.domain.model.OrderNotification;
 import com.fops.infrastructure.persistence.OrderNotificationRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.mail.SimpleMailMessage;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -32,17 +34,30 @@ public class NotificationService {
     private final String from;
     private final int maxAttempts;
     private final Duration retryBaseDelay;
+    private final Clock clock;
 
+    public NotificationService(OrderNotificationRepository orderNotificationRepository,
+                               JavaMailSender mailSender,
+                               String from,
+                               int maxAttempts,
+                               long retryBaseDelayMs) {
+        this(orderNotificationRepository, mailSender, from, maxAttempts, retryBaseDelayMs, Clock.systemDefaultZone());
+    }
+
+    /** The clock decides "now" for queueing, attempts and backoff, so tests can pin exact times. */
+    @Autowired
     public NotificationService(OrderNotificationRepository orderNotificationRepository,
                                JavaMailSender mailSender,
                                @Value("${fops.mail.from}") String from,
                                @Value("${fops.notifications.max-attempts:5}") int maxAttempts,
-                               @Value("${fops.notifications.retry-base-delay-ms:30000}") long retryBaseDelayMs) {
+                               @Value("${fops.notifications.retry-base-delay-ms:30000}") long retryBaseDelayMs,
+                               Clock clock) {
         this.orderNotificationRepository = orderNotificationRepository;
         this.mailSender = mailSender;
         this.from = from;
         this.maxAttempts = maxAttempts;
         this.retryBaseDelay = Duration.ofMillis(retryBaseDelayMs);
+        this.clock = clock;
     }
 
     /**
@@ -51,7 +66,7 @@ public class NotificationService {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void enqueueOrderCompleted(Order order) {
-        orderNotificationRepository.save(new OrderNotification(order, LocalDateTime.now().plus(retryBaseDelay)));
+        orderNotificationRepository.save(new OrderNotification(order, LocalDateTime.now(clock).plus(retryBaseDelay)));
     }
 
     /**
@@ -72,7 +87,7 @@ public class NotificationService {
             return false;
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         try {
             mailSender.send(buildMessage(notification.getOrder(), notification.getRecipient()));
             notification.markSent(now);
@@ -92,7 +107,7 @@ public class NotificationService {
 
     @Transactional(readOnly = true)
     public List<Long> findDueOrderIds(int limit) {
-        return orderNotificationRepository.findDueOrderIds(NotificationStatus.PENDING, LocalDateTime.now(), PageRequest.of(0, limit));
+        return orderNotificationRepository.findDueOrderIds(NotificationStatus.PENDING, LocalDateTime.now(clock), PageRequest.of(0, limit));
     }
 
     /**
@@ -104,7 +119,7 @@ public class NotificationService {
     public void requeue(Long orderId) {
         OrderNotification notification = orderNotificationRepository.findByOrderIdForUpdate(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order " + orderId + " has no completion notification"));
-        notification.requeue(LocalDateTime.now());
+        notification.requeue(LocalDateTime.now(clock));
     }
 
     @Transactional(readOnly = true)
