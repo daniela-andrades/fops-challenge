@@ -55,4 +55,41 @@ describe('MovementListPage', () => {
 
     expect(api.getMovements).toHaveBeenLastCalledWith(1);
   });
+
+  describe('search and pagination', () => {
+    beforeEach(() => {
+      api.getItems.mockReturnValue(of([anItem({ id: 1, name: 'Laptop', sku: 'LAP-001' }), anItem({ id: 2, name: 'Mouse', sku: 'MOU-001' })]));
+      api.getMovements.mockReturnValue(of([
+        aMovement({ id: 1, itemId: 1, reason: 'Supplier A' }),
+        aMovement({ id: 2, itemId: 2, reason: 'Initial stock' }),
+        aMovement({ id: 3, itemId: 1, movementType: 'OUT', orderId: 77, reason: 'Allocated' })
+      ]));
+    });
+
+    it('searches by item name, SKU, reason, #movement and #order', () => {
+      const { page, fixture, host } = render();
+      const search = (query: string) => {
+        page.search.set(query);
+        fixture.detectChanges();
+        return firstCells(host);
+      };
+
+      expect(search('mou-001')).toEqual(['#2']);
+      expect(search('laptop')).toEqual(['#3', '#1']);
+      expect(search('supplier')).toEqual(['#1']);
+      expect(search('#77')).toEqual(['#3']);
+      expect(search('nothing like this')).toEqual(['No movements recorded.']);
+      expect(host.querySelector('.page-header')!.textContent).toContain('0 movements');
+    });
+
+    it('paginates long histories', () => {
+      api.getMovements.mockReturnValue(of(Array.from({ length: 60 }, (_, i) => aMovement({ id: i + 1 }))));
+      const { host, fixture, page } = render();
+
+      expect(host.querySelectorAll('tbody tr')).toHaveLength(25);
+      page.page.set(3);
+      fixture.detectChanges();
+      expect(firstCells(host)).toEqual(Array.from({ length: 10 }, (_, i) => `#${10 - i}`));
+    });
+  });
 });

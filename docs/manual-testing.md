@@ -17,7 +17,7 @@ scripts/dev.sh seed    # loads the demo data below
 | API | http://localhost:8080/api |
 | Database console | http://localhost:8080/h2-console (JDBC URL is printed by `dev.sh up`, user `sa`, no password) |
 
-The scenarios build on each other; 13 to 16 can run at any point after the seed.
+The scenarios build on each other; 13 to 17 can run at any point after the seed.
 
 Other commands: `scripts/dev.sh status`, `down`, `logs backend|frontend|mail`, `mail-stop`, `mail-start`.
 
@@ -289,6 +289,29 @@ The setup uses its own items, so this works at any point.
 
 ---
 
+## 17. Long lists: pagination and search
+
+Load volume first (on top of the current data; reset afterwards to go back to the demo):
+
+```bash
+python3 scripts/seed_bulk_data.py      # 20 users, 50 items, 2,000 orders, 1,000 deliveries, 60 cancellations
+```
+
+1. **Inventory:** check the range and pages, go to the next page, change rows per page to 100.
+2. **Inventory:** type `BULK-007` in the search box, then `#2000`, then `Initial stock`. Combine with the type filter *Allocations (OUT)*.
+3. **Orders:** filter by status *Pending* and page through the results.
+4. **Catalog:** search users for `bulk1` and items for `bulk-04`; page through each table independently.
+
+**Expected**
+- Each table shows at most the selected number of rows, with "1–25 of 2,410" style ranges and *Page X of Y*. Prev and Next are disabled at the ends.
+- Changing rows per page, a filter or the search text goes back to page 1, and the header count shows the filtered total.
+- Searches are case-insensitive. `#2000` finds movement 2000 and the movements of order 2000. A search with no match says so instead of showing an empty table.
+- The Users and Items pagers in the Catalog are independent of each other.
+
+To return to the demo data: `scripts/dev.sh reset && scripts/dev.sh up && scripts/dev.sh seed`.
+
+---
+
 ## Checklist
 
 | # | Scenario | Result | Notes |
@@ -309,3 +332,4 @@ The setup uses its own items, so this works at any point.
 | 14 | Movement corrections | ☐ | |
 | 15 | Idempotent creation (Idempotency-Key) | ☐ | |
 | 16 | Order cancellation | ☐ | |
+| 17 | Long lists: pagination and search | ☐ | |

@@ -5,10 +5,12 @@ import { RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { InventoryMovement, Item, MovementType } from '../../core/models';
 import { StatusBadge } from '../../shared/components/status-badge';
+import { Paginator } from '../../shared/components/paginator';
+import { DEFAULT_PAGE_SIZE, matchesSearch, pageOf } from '../../shared/pagination';
 
 @Component({
   selector: 'app-movement-list',
-  imports: [FormsModule, RouterLink, DatePipe, StatusBadge],
+  imports: [FormsModule, RouterLink, DatePipe, StatusBadge, Paginator],
   template: `
     <section class="page">
       <header class="page-header">
@@ -27,11 +29,13 @@ import { StatusBadge } from '../../shared/components/status-badge';
               <option [ngValue]="item.id">{{ item.name }} · {{ item.sku }}</option>
             }
           </select>
-          <select [ngModel]="type()" (ngModelChange)="type.set($event)" name="type" aria-label="Filter by type">
+          <select [ngModel]="type()" (ngModelChange)="type.set($event); page.set(1)" name="type" aria-label="Filter by type">
             <option [ngValue]="null">In and out</option>
             <option ngValue="IN">Incoming (IN)</option>
             <option ngValue="OUT">Allocations (OUT)</option>
           </select>
+          <input type="search" [ngModel]="search()" (ngModelChange)="search.set($event); page.set(1)" name="search"
+                 placeholder="Search item, SKU, reason, #movement or #order" aria-label="Search movements" />
         </div>
 
         <div class="table-wrap">
@@ -43,7 +47,7 @@ import { StatusBadge } from '../../shared/components/status-badge';
               </tr>
             </thead>
             <tbody>
-              @for (movement of visible(); track movement.id) {
+              @for (movement of pagedMovements(); track movement.id) {
                 <tr>
                   <td><a [routerLink]="['/inventory/movements', movement.id]">#{{ movement.id }}</a></td>
                   <td><app-status-badge [value]="movement.movementType" /></td>
@@ -69,6 +73,7 @@ import { StatusBadge } from '../../shared/components/status-badge';
             </tbody>
           </table>
         </div>
+        <app-paginator [total]="visible().length" [(page)]="page" [(pageSize)]="pageSize" />
       </section>
     </section>
   `
@@ -79,6 +84,9 @@ export class MovementListPage implements OnInit {
   readonly items = signal<Item[]>([]);
   readonly movements = signal<InventoryMovement[]>([]);
   readonly type = signal<MovementType | null>(null);
+  readonly search = signal('');
+  readonly page = signal(1);
+  readonly pageSize = signal(DEFAULT_PAGE_SIZE);
   itemId: number | null = null;
 
   private readonly itemsById = computed(() => new Map(this.items().map((item) => [item.id, item])));
@@ -86,8 +94,14 @@ export class MovementListPage implements OnInit {
     const type = this.type();
     return [...this.movements()]
       .reverse()
-      .filter((movement) => !type || movement.movementType === type);
+      .filter((movement) => !type || movement.movementType === type)
+      .filter((movement) => {
+        const item = this.itemsById().get(movement.itemId);
+        return matchesSearch(this.search(), item?.name, item?.sku, movement.reason,
+          `#${movement.id}`, movement.orderId ? `#${movement.orderId}` : null);
+      });
   });
+  readonly pagedMovements = computed(() => pageOf(this.visible(), this.page(), this.pageSize()));
 
   ngOnInit(): void {
     this.api.getItems().subscribe((items) => this.items.set(items));
@@ -95,6 +109,7 @@ export class MovementListPage implements OnInit {
   }
 
   load(): void {
+    this.page.set(1);
     this.api.getMovements(this.itemId).subscribe((movements) => this.movements.set(movements));
   }
 

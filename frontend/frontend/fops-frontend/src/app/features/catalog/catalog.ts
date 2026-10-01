@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Observable } from 'rxjs';
@@ -6,6 +6,8 @@ import { ApiService } from '../../core/api.service';
 import { ConfirmService } from '../../core/confirm.service';
 import { ToastService } from '../../core/toast.service';
 import { Item, User } from '../../core/models';
+import { Paginator } from '../../shared/components/paginator';
+import { DEFAULT_PAGE_SIZE, matchesSearch, pageOf } from '../../shared/pagination';
 
 /**
  * Master data maintenance: edit and delete users and items.
@@ -13,7 +15,7 @@ import { Item, User } from '../../core/models';
  */
 @Component({
   selector: 'app-catalog',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, Paginator],
   template: `
     <section class="page">
       <header class="page-header">
@@ -27,11 +29,13 @@ import { Item, User } from '../../core/models';
       <div class="grid two">
         <section class="panel users">
           <h2>Users</h2>
+          <input type="search" class="search" [ngModel]="userSearch()" (ngModelChange)="userSearch.set($event); userPage.set(1)"
+                 name="userSearch" placeholder="Search by name or email" aria-label="Search users" />
           <div class="table-wrap">
             <table>
               <thead><tr><th>Name</th><th>Email</th><th></th></tr></thead>
               <tbody>
-                @for (user of users(); track user.id) {
+                @for (user of pagedUsers(); track user.id) {
                   @if (editingUserId() === user.id) {
                     <tr class="editing">
                       <td><input [(ngModel)]="userDraft.name" name="userName" aria-label="Name" /></td>
@@ -52,21 +56,24 @@ import { Item, User } from '../../core/models';
                     </tr>
                   }
                 } @empty {
-                  <tr><td colspan="3" class="empty">No users yet.</td></tr>
+                  <tr><td colspan="3" class="empty">{{ userSearch() ? 'No users match this search.' : 'No users yet.' }}</td></tr>
                 }
               </tbody>
             </table>
           </div>
+          <app-paginator [total]="filteredUsers().length" [(page)]="userPage" [(pageSize)]="userPageSize" />
         </section>
 
         <section class="panel items">
           <h2>Items</h2>
           <p class="muted hint">Stock is not editable here: it only changes through inventory movements.</p>
+          <input type="search" class="search" [ngModel]="itemSearch()" (ngModelChange)="itemSearch.set($event); itemPage.set(1)"
+                 name="itemSearch" placeholder="Search by name or SKU" aria-label="Search items" />
           <div class="table-wrap">
             <table>
               <thead><tr><th>Name</th><th>SKU</th><th class="num">Stock</th><th></th></tr></thead>
               <tbody>
-                @for (item of items(); track item.id) {
+                @for (item of pagedItems(); track item.id) {
                   @if (editingItemId() === item.id) {
                     <tr class="editing">
                       <td><input [(ngModel)]="itemDraft.name" name="itemName" aria-label="Item name" /></td>
@@ -89,16 +96,20 @@ import { Item, User } from '../../core/models';
                     </tr>
                   }
                 } @empty {
-                  <tr><td colspan="4" class="empty">No items yet.</td></tr>
+                  <tr><td colspan="4" class="empty">{{ itemSearch() ? 'No items match this search.' : 'No items yet.' }}</td></tr>
                 }
               </tbody>
             </table>
           </div>
+          <app-paginator [total]="filteredItems().length" [(page)]="itemPage" [(pageSize)]="itemPageSize" />
         </section>
       </div>
     </section>
   `,
-  styles: `.hint { margin: -4px 0 4px; font-size: .88rem; }`
+  styles: `
+    .hint { margin: -4px 0 4px; font-size: .88rem; }
+    .search { margin-bottom: 4px; }
+  `
 })
 export class CatalogPage implements OnInit {
   private readonly api = inject(ApiService);
@@ -110,6 +121,18 @@ export class CatalogPage implements OnInit {
   readonly busy = signal(false);
   readonly editingUserId = signal<number | null>(null);
   readonly editingItemId = signal<number | null>(null);
+
+  readonly userSearch = signal('');
+  readonly userPage = signal(1);
+  readonly userPageSize = signal(DEFAULT_PAGE_SIZE);
+  readonly filteredUsers = computed(() => this.users().filter((user) => matchesSearch(this.userSearch(), user.name, user.email)));
+  readonly pagedUsers = computed(() => pageOf(this.filteredUsers(), this.userPage(), this.userPageSize()));
+
+  readonly itemSearch = signal('');
+  readonly itemPage = signal(1);
+  readonly itemPageSize = signal(DEFAULT_PAGE_SIZE);
+  readonly filteredItems = computed(() => this.items().filter((item) => matchesSearch(this.itemSearch(), item.name, item.sku)));
+  readonly pagedItems = computed(() => pageOf(this.filteredItems(), this.itemPage(), this.itemPageSize()));
 
   userDraft = { name: '', email: '' };
   itemDraft = { name: '', sku: '' };

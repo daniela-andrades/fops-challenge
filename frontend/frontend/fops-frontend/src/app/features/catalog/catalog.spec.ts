@@ -110,4 +110,36 @@ describe('CatalogPage', () => {
     expect(api.deleteItem).toHaveBeenCalledWith(7);
     expect(api.getItems).toHaveBeenCalledTimes(1);
   });
+
+  describe('search and pagination', () => {
+    it('filters users by name or email and items by name or SKU', () => {
+      const { page, fixture, host } = render();
+
+      page.userSearch.set('LUIS@');
+      page.itemSearch.set('lap-0');
+      fixture.detectChanges();
+
+      expect(host.querySelectorAll('.users tbody tr')).toHaveLength(1);
+      expect(host.querySelector('.users tbody tr')!.textContent).toContain('Luis');
+      expect(host.querySelector('.items tbody tr')!.textContent).toContain('LAP-001');
+
+      page.itemSearch.set('zzz');
+      fixture.detectChanges();
+      expect(host.querySelector('.items tbody tr')!.textContent).toContain('No items match this search.');
+    });
+
+    it('paginates users and items independently', () => {
+      api.getUsers.mockReturnValue(of(Array.from({ length: 30 }, (_, i) => aUser({ id: i + 1, name: `User ${i + 1}` }))));
+      api.getItems.mockReturnValue(of(Array.from({ length: 12 }, (_, i) => anItem({ id: i + 1, sku: `SKU-${i + 1}` }))));
+      const { page, fixture, host } = render();
+
+      expect(host.querySelectorAll('.users tbody tr')).toHaveLength(25);
+      expect(host.querySelectorAll('.items tbody tr')).toHaveLength(12);
+
+      page.userPage.set(2);
+      fixture.detectChanges();
+      expect(host.querySelectorAll('.users tbody tr')).toHaveLength(5);
+      expect(host.querySelectorAll('.items tbody tr')).toHaveLength(12);
+    });
+  });
 });

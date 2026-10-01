@@ -7,10 +7,12 @@ import { ApiService } from '../../core/api.service';
 import { Item, Order, OrderFilters, OrderStatus, User } from '../../core/models';
 import { ProgressBar } from '../../shared/components/progress-bar';
 import { StatusBadge } from '../../shared/components/status-badge';
+import { Paginator } from '../../shared/components/paginator';
+import { DEFAULT_PAGE_SIZE, pageOf } from '../../shared/pagination';
 
 @Component({
   selector: 'app-order-list',
-  imports: [FormsModule, RouterLink, DatePipe, ProgressBar, StatusBadge],
+  imports: [FormsModule, RouterLink, DatePipe, ProgressBar, StatusBadge, Paginator],
   template: `
     <section class="page">
       <header class="page-header">
@@ -53,7 +55,7 @@ import { StatusBadge } from '../../shared/components/status-badge';
               </tr>
             </thead>
             <tbody>
-              @for (order of orders(); track order.id) {
+              @for (order of pagedOrders(); track order.id) {
                 <tr class="clickable" (click)="open(order.id)">
                   <td><a [routerLink]="['/orders', order.id]">#{{ order.id }}</a></td>
                   <td>{{ userName(order.userId) }}</td>
@@ -71,6 +73,7 @@ import { StatusBadge } from '../../shared/components/status-badge';
             </tbody>
           </table>
         </div>
+        <app-paginator [total]="orders().length" [(page)]="page" [(pageSize)]="pageSize" />
       </section>
     </section>
   `
@@ -82,6 +85,9 @@ export class OrderListPage implements OnInit {
   readonly orders = signal<Order[]>([]);
   readonly users = signal<User[]>([]);
   readonly items = signal<Item[]>([]);
+  readonly page = signal(1);
+  readonly pageSize = signal(DEFAULT_PAGE_SIZE);
+  readonly pagedOrders = computed(() => pageOf(this.orders(), this.page(), this.pageSize()));
   private readonly usersById = computed(() => new Map(this.users().map((user) => [user.id, user])));
   private readonly itemsById = computed(() => new Map(this.items().map((item) => [item.id, item])));
 
@@ -103,6 +109,7 @@ export class OrderListPage implements OnInit {
   }
 
   load(): void {
+    this.page.set(1);
     this.api.getOrders(this.filters).subscribe((orders) => this.orders.set(orders));
   }
 
