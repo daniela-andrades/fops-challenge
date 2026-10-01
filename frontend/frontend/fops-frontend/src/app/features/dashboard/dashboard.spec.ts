@@ -299,4 +299,19 @@ describe('DashboardPage', () => {
       expect(inventoryRows(render().host).map((r) => r.sku)).toEqual(['BIG-GAP', 'SMALL-GAP', 'FIRST', 'SECOND', 'THIRD']);
     });
   });
+
+  it('shows the current inventory 10 rows at a time, shortages first', () => {
+    api.getItems.mockReturnValue(of(Array.from({ length: 13 }, (_, i) =>
+      anItem({ id: i + 1, sku: `SKU-${i + 1}`, stockOnHand: 0, outstandingDemand: i === 12 ? 5 : 0 }))));
+    const { host, fixture } = render();
+    const card = () => Array.from(host.querySelectorAll('section.panel')).find((s) => s.querySelector('h2')?.textContent === 'Current inventory')!;
+
+    expect(card().querySelectorAll('tbody tr')).toHaveLength(10);
+    expect(card().querySelector('tbody tr td:nth-child(2)')!.textContent).toBe('SKU-13');
+    expect(card().querySelector('app-paginator .range')!.textContent).toBe('1–10 of 13');
+
+    card().querySelector<HTMLButtonElement>('app-paginator .next')!.click();
+    fixture.detectChanges();
+    expect(card().querySelectorAll('tbody tr')).toHaveLength(3);
+  });
 });

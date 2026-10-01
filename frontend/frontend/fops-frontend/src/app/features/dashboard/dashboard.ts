@@ -9,6 +9,8 @@ import { newRequestId } from '../../core/request-id';
 import { DashboardSummary, InventoryMovement, Item, Order, User } from '../../core/models';
 import { ProgressBar } from '../../shared/components/progress-bar';
 import { StatusBadge } from '../../shared/components/status-badge';
+import { Paginator } from '../../shared/components/paginator';
+import { DEFAULT_PAGE_SIZE, pageOf } from '../../shared/pagination';
 
 const STATUS_LABEL: Record<Order['status'], string> = {
   PENDING: 'pending',
@@ -19,7 +21,7 @@ const STATUS_LABEL: Record<Order['status'], string> = {
 
 @Component({
   selector: 'app-dashboard',
-  imports: [FormsModule, RouterLink, DatePipe, ProgressBar, StatusBadge],
+  imports: [FormsModule, RouterLink, DatePipe, ProgressBar, StatusBadge, Paginator],
   template: `
     <section class="page">
       <header class="page-header">
@@ -145,7 +147,7 @@ const STATUS_LABEL: Record<Order['status'], string> = {
                 <tr><th>Item</th><th>SKU</th><th class="num">Stock</th><th class="num">Demand</th></tr>
               </thead>
               <tbody>
-                @for (row of inventoryRows(); track row.item.id) {
+                @for (row of pagedInventoryRows(); track row.item.id) {
                   <tr [class.short]="row.shortfall > 0">
                     <td>{{ row.item.name }}</td>
                     <td>{{ row.item.sku }}</td>
@@ -163,6 +165,7 @@ const STATUS_LABEL: Record<Order['status'], string> = {
               </tbody>
             </table>
           </div>
+          <app-paginator [total]="inventoryRows().length" [(page)]="inventoryPage" [(pageSize)]="inventoryPageSize" />
         </section>
       </div>
 
@@ -231,6 +234,8 @@ export class DashboardPage implements OnInit {
    * Current inventory rows with outstanding demand and shortfall (units to reorder), items needing stock first.
    * The sort is stable, so items without a shortfall keep their usual order.
    */
+  readonly inventoryPage = signal(1);
+  readonly inventoryPageSize = signal(DEFAULT_PAGE_SIZE);
   readonly inventoryRows = computed(() =>
     this.items()
       .map((item) => {
@@ -239,6 +244,7 @@ export class DashboardPage implements OnInit {
       })
       .sort((a, b) => b.shortfall - a.shortfall)
   );
+  readonly pagedInventoryRows = computed(() => pageOf(this.inventoryRows(), this.inventoryPage(), this.inventoryPageSize()));
   private readonly itemsById = computed(() => new Map(this.items().map((item) => [item.id, item])));
 
   userForm = { name: '', email: '' };
