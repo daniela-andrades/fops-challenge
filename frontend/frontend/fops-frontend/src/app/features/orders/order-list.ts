@@ -8,7 +8,7 @@ import { Item, Order, OrderFilters, OrderStatus, User } from '../../core/models'
 import { ProgressBar } from '../../shared/components/progress-bar';
 import { StatusBadge } from '../../shared/components/status-badge';
 import { Paginator } from '../../shared/components/paginator';
-import { DEFAULT_PAGE_SIZE, pageOf } from '../../shared/pagination';
+import { DEFAULT_PAGE_SIZE, matchesSearch, pageOf } from '../../shared/pagination';
 
 @Component({
   selector: 'app-order-list',
@@ -20,7 +20,7 @@ import { DEFAULT_PAGE_SIZE, pageOf } from '../../shared/pagination';
           <p class="eyebrow">Fulfillment</p>
           <h1>Orders</h1>
         </div>
-        <span class="muted">{{ orders().length }} orders</span>
+        <span class="muted">{{ filteredOrders().length }} orders</span>
       </header>
 
       <section class="panel">
@@ -43,6 +43,8 @@ import { DEFAULT_PAGE_SIZE, pageOf } from '../../shared/pagination';
               <option [ngValue]="status.value">{{ status.label }}</option>
             }
           </select>
+          <input type="search" [ngModel]="search()" (ngModelChange)="search.set($event); page.set(1)" name="search"
+                 placeholder="Search #order, user or item" aria-label="Search orders" />
         </div>
 
         <div class="table-wrap">
@@ -73,7 +75,7 @@ import { DEFAULT_PAGE_SIZE, pageOf } from '../../shared/pagination';
             </tbody>
           </table>
         </div>
-        <app-paginator [total]="orders().length" [(page)]="page" [(pageSize)]="pageSize" />
+        <app-paginator [total]="filteredOrders().length" [(page)]="page" [(pageSize)]="pageSize" />
       </section>
     </section>
   `
@@ -87,7 +89,16 @@ export class OrderListPage implements OnInit {
   readonly items = signal<Item[]>([]);
   readonly page = signal(1);
   readonly pageSize = signal(DEFAULT_PAGE_SIZE);
-  readonly pagedOrders = computed(() => pageOf(this.orders(), this.page(), this.pageSize()));
+  readonly search = signal('');
+  /** Server-side filters narrow the list; the search box then matches #order, user name/email and item name/SKU. */
+  readonly filteredOrders = computed(() =>
+    this.orders().filter((order) => {
+      const user = this.usersById().get(order.userId);
+      const item = this.itemsById().get(order.itemId);
+      return matchesSearch(this.search(), `#${order.id}`, user?.name, user?.email, item?.name, item?.sku);
+    })
+  );
+  readonly pagedOrders = computed(() => pageOf(this.filteredOrders(), this.page(), this.pageSize()));
   private readonly usersById = computed(() => new Map(this.users().map((user) => [user.id, user])));
   private readonly itemsById = computed(() => new Map(this.items().map((item) => [item.id, item])));
 

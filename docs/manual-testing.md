@@ -299,7 +299,7 @@ python3 scripts/seed_bulk_data.py      # 20 users, 50 items, 2,000 orders, 1,000
 
 1. **Inventory:** check the range and pages (10 rows by default), go to the next page, change rows per page to 100.
 2. **Inventory:** type `BULK-007` in the search box, then `#2000`, then `Initial stock`. Combine with the type filter *Allocations (OUT)*.
-3. **Orders:** filter by status *Pending* and page through the results.
+3. **Orders:** filter by status *Pending* and page through the results; then search `#2000`, `bulk05@` and `BULK-007`, alone and combined with the filters.
 4. **Catalog:** search users for `bulk1` and items for `bulk-04`; page through each table independently.
 
 **Expected**

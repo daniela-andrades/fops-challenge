@@ -92,4 +92,27 @@ describe('OrderListPage', () => {
 
     expect(page.page()).toBe(1);
   });
+
+  it('searches by #order, user name or email, and item name or SKU', () => {
+    api.getUsers.mockReturnValue(of([aUser({ id: 1, name: 'Ana', email: 'ana@test.local' }), aUser({ id: 2, name: 'Luis', email: 'luis@test.local' })]));
+    api.getItems.mockReturnValue(of([anItem({ id: 1, name: 'Laptop', sku: 'LAP-001' }), anItem({ id: 2, name: 'Mouse', sku: 'MOU-001' })]));
+    api.getOrders.mockReturnValue(of([
+      anOrder({ id: 12, userId: 1, itemId: 1 }),
+      anOrder({ id: 7, userId: 2, itemId: 2 }),
+      anOrder({ id: 3, userId: 2, itemId: 1 })
+    ]));
+    const { page, fixture, host } = render();
+    const search = (query: string) => {
+      page.search.set(query);
+      fixture.detectChanges();
+      return Array.from(host.querySelectorAll('tbody tr')).map((r) => r.querySelector('td')!.textContent!.trim());
+    };
+
+    expect(search('#7')).toEqual(['#7']);
+    expect(search('luis@')).toEqual(['#7', '#3']);
+    expect(search('lap-001')).toEqual(['#12', '#3']);
+    expect(search('mouse')).toEqual(['#7']);
+    expect(search('nothing')).toEqual(['No orders match these filters.']);
+    expect(host.querySelector('.page-header')!.textContent).toContain('0 orders');
+  });
 });

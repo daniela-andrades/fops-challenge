@@ -180,6 +180,11 @@ button {
   }
 }
 
+/* Pagers sit at the bottom of their panel, so side-by-side panels line them up */
+.panel > app-paginator {
+  margin-top: auto;
+}
+
 .row-actions {
   display: flex;
   gap: 6px;
