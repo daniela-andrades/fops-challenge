@@ -129,17 +129,26 @@ describe('CatalogPage', () => {
     });
 
     it('paginates users and items independently', () => {
-      api.getUsers.mockReturnValue(of(Array.from({ length: 30 }, (_, i) => aUser({ id: i + 1, name: `User ${i + 1}` }))));
+      api.getUsers.mockReturnValue(of(Array.from({ length: 23 }, (_, i) => aUser({ id: i + 1, name: `User ${i + 1}` }))));
       api.getItems.mockReturnValue(of(Array.from({ length: 12 }, (_, i) => anItem({ id: i + 1, sku: `SKU-${i + 1}` }))));
       const { page, fixture, host } = render();
 
-      expect(host.querySelectorAll('.users tbody tr')).toHaveLength(25);
-      expect(host.querySelectorAll('.items tbody tr')).toHaveLength(12);
+      expect(host.querySelectorAll('.users tbody tr')).toHaveLength(10);
+      expect(host.querySelectorAll('.items tbody tr')).toHaveLength(10);
 
-      page.userPage.set(2);
+      page.userPage.set(3);
       fixture.detectChanges();
-      expect(host.querySelectorAll('.users tbody tr')).toHaveLength(5);
-      expect(host.querySelectorAll('.items tbody tr')).toHaveLength(12);
+      expect(host.querySelectorAll('.users tbody tr')).toHaveLength(3);
+      expect(host.querySelectorAll('.items tbody tr')).toHaveLength(10);
     });
+  });
+
+  it('explains why stock is not editable through a tooltip on the Stock header', () => {
+    const { host } = render();
+
+    const header = host.querySelector('.items thead .has-tooltip')!;
+    expect(header.getAttribute('title')).toBe('Stock is not editable here: it only changes through inventory movements.');
+    expect(header.getAttribute('tabindex')).toBe('0');
+    expect(host.querySelector('.items .hint')).toBeNull();
   });
 });

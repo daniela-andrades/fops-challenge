@@ -1,5 +1,8 @@
-import { expect, test } from '@playwright/test';
+import { expect, Page, test } from '@playwright/test';
 import { createUserAndItem, expectToast, uniqueId } from './support';
+
+const searchUsers = (page: Page, text: string) => page.getByPlaceholder('Search by name or email').fill(text);
+const searchItems = (page: Page, text: string) => page.getByPlaceholder('Search by name or SKU').fill(text);
 
 test.describe('Catalog maintenance', () => {
   test('renames a user and an item inline', async ({ page, request }) => {
@@ -7,6 +10,8 @@ test.describe('Catalog maintenance', () => {
     const id = uniqueId();
 
     await page.goto('/catalog');
+    await searchUsers(page, user.email);
+    await searchItems(page, item.sku);
     const userRow = page.locator('.users tbody tr').filter({ hasText: user.email });
     await userRow.getByRole('button', { name: 'Edit' }).click();
     await page.locator('.users tr.editing').getByLabel('Name').fill(`Renamed ${id}`);
@@ -18,6 +23,7 @@ test.describe('Catalog maintenance', () => {
     await page.locator('.items tr.editing').getByLabel('SKU').fill(`ren-${id}`);
     await page.locator('.items tr.editing').getByRole('button', { name: 'Save' }).click();
     await expectToast(page, `Item REN-${id.toUpperCase()} updated`);
+    await searchItems(page, `REN-${id}`);
     await expect(page.locator('.items tbody tr').filter({ hasText: `REN-${id.toUpperCase()}` }).locator('.num')).toHaveText('3');
   });
 
@@ -27,10 +33,12 @@ test.describe('Catalog maintenance', () => {
     const idle = await (await request.post('/api/users', { data: { name: `Idle ${uniqueId()}`, email: `idle-${uniqueId()}@test.local` } })).json();
 
     await page.goto('/catalog');
+    await searchUsers(page, user.email);
     await page.locator('.users tbody tr').filter({ hasText: user.email }).getByRole('button', { name: 'Delete' }).click();
     await page.getByRole('alertdialog').getByRole('button', { name: 'Delete user' }).click();
     await expectToast(page, `User ${user.id} has orders and cannot be deleted`);
 
+    await searchUsers(page, idle.email);
     await page.locator('.users tbody tr').filter({ hasText: idle.email }).getByRole('button', { name: 'Delete' }).click();
     await page.getByRole('alertdialog').getByRole('button', { name: 'Delete user' }).click();
     await expectToast(page, `User ${idle.name} deleted`);
@@ -41,6 +49,7 @@ test.describe('Catalog maintenance', () => {
     const { item } = await createUserAndItem(request, 0);
 
     await page.goto('/catalog');
+    await searchItems(page, item.sku);
     await page.locator('.items tbody tr').filter({ hasText: item.sku }).getByRole('button', { name: 'Delete' }).click();
     await page.getByRole('alertdialog').getByRole('button', { name: 'Cancel' }).click();
 

@@ -29,7 +29,7 @@ Evidence: `EXPLAIN (COSTS OFF)` on PostgreSQL 16 with 100,000 orders (90% comple
 
 ### List pages: client-side pagination and search
 
-The Orders, Inventory and Catalog pages paginate (10, 25, 50 or 100 rows per page) and filter in the browser. Inventory searches item, SKU, reason, `#movement` and `#order`; Users search name and email; Items search name and SKU. The API keeps returning full result sets, so no endpoint contract changed late in the build. With 2,000 orders and 2,400 movements those lists respond in 10–22 ms; what needed fixing was rendering thousands of rows at once, and client-side paging solves exactly that. Server-side pagination is the step to take when result sets stop fitting comfortably in one response.
+The Orders, Inventory and Catalog pages paginate (10 rows per page by default; 25, 50 or 100 on demand) and filter in the browser. Inventory searches item, SKU, reason, `#movement` and `#order`; Users search name and email; Items search name and SKU. The API keeps returning full result sets, so no endpoint contract changed late in the build. With 2,000 orders and 2,400 movements those lists respond in 10–22 ms; what needed fixing was rendering thousands of rows at once, and client-side paging solves exactly that. Server-side pagination is the step to take when result sets stop fitting comfortably in one response.
 
 ## Out of scope
 

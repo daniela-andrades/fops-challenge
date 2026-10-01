@@ -66,12 +66,22 @@ import { DEFAULT_PAGE_SIZE, matchesSearch, pageOf } from '../../shared/paginatio
 
         <section class="panel items">
           <h2>Items</h2>
-          <p class="muted hint">Stock is not editable here: it only changes through inventory movements.</p>
           <input type="search" class="search" [ngModel]="itemSearch()" (ngModelChange)="itemSearch.set($event); itemPage.set(1)"
                  name="itemSearch" placeholder="Search by name or SKU" aria-label="Search items" />
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Name</th><th>SKU</th><th class="num">Stock</th><th></th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>SKU</th>
+                  <th class="num">
+                    <span class="has-tooltip" tabindex="0" [attr.title]="stockHint" [attr.aria-label]="'Stock. ' + stockHint">
+                      Stock <span class="info" aria-hidden="true">ⓘ</span>
+                    </span>
+                  </th>
+                  <th></th>
+                </tr>
+              </thead>
               <tbody>
                 @for (item of pagedItems(); track item.id) {
                   @if (editingItemId() === item.id) {
@@ -107,7 +117,8 @@ import { DEFAULT_PAGE_SIZE, matchesSearch, pageOf } from '../../shared/paginatio
     </section>
   `,
   styles: `
-    .hint { margin: -4px 0 4px; font-size: .88rem; }
+    .has-tooltip { cursor: help; display: inline-flex; align-items: center; gap: 4px; line-height: 1; }
+    .info { font-size: 1em; line-height: 1; color: var(--accent); }
     .search { margin-bottom: 4px; }
   `
 })
@@ -119,6 +130,7 @@ export class CatalogPage implements OnInit {
   readonly users = signal<User[]>([]);
   readonly items = signal<Item[]>([]);
   readonly busy = signal(false);
+  protected readonly stockHint = 'Stock is not editable here: it only changes through inventory movements.';
   readonly editingUserId = signal<number | null>(null);
   readonly editingItemId = signal<number | null>(null);
 

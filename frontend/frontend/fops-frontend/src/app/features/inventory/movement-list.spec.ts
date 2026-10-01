@@ -86,10 +86,10 @@ describe('MovementListPage', () => {
       api.getMovements.mockReturnValue(of(Array.from({ length: 60 }, (_, i) => aMovement({ id: i + 1 }))));
       const { host, fixture, page } = render();
 
-      expect(host.querySelectorAll('tbody tr')).toHaveLength(25);
+      expect(host.querySelectorAll('tbody tr')).toHaveLength(10);
       page.page.set(3);
       fixture.detectChanges();
-      expect(firstCells(host)).toEqual(Array.from({ length: 10 }, (_, i) => `#${10 - i}`));
+      expect(firstCells(host)).toEqual(Array.from({ length: 10 }, (_, i) => `#${40 - i}`));
     });
   });
 });

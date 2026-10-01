@@ -297,13 +297,13 @@ Load volume first (on top of the current data; reset afterwards to go back to th
 python3 scripts/seed_bulk_data.py      # 20 users, 50 items, 2,000 orders, 1,000 deliveries, 60 cancellations
 ```
 
-1. **Inventory:** check the range and pages, go to the next page, change rows per page to 100.
+1. **Inventory:** check the range and pages (10 rows by default), go to the next page, change rows per page to 100.
 2. **Inventory:** type `BULK-007` in the search box, then `#2000`, then `Initial stock`. Combine with the type filter *Allocations (OUT)*.
 3. **Orders:** filter by status *Pending* and page through the results.
 4. **Catalog:** search users for `bulk1` and items for `bulk-04`; page through each table independently.
 
 **Expected**
-- Each table shows at most the selected number of rows, with "1–25 of 2,410" style ranges and *Page X of Y*. Prev and Next are disabled at the ends.
+- Each table shows at most the selected number of rows (10 by default), with "1–10 of 2,410" style ranges and *Page X of Y*. Prev and Next are disabled at the ends.
 - Changing rows per page, a filter or the search text goes back to page 1, and the header count shows the filtered total.
 - Searches are case-insensitive. `#2000` finds movement 2000 and the movements of order 2000. A search with no match says so instead of showing an empty table.
 - The Users and Items pagers in the Catalog are independent of each other.

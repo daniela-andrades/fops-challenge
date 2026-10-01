@@ -1,6 +1,6 @@
 import { Component, computed, input, model } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { PAGE_SIZES, pageCount } from '../pagination';
+import { DEFAULT_PAGE_SIZE, PAGE_SIZES, pageCount } from '../pagination';
 
 /**
  * Client-side pager for long tables: range, previous/next and rows per page.
@@ -40,7 +40,7 @@ import { PAGE_SIZES, pageCount } from '../pagination';
 export class Paginator {
   readonly total = input.required<number>();
   readonly page = model(1);
-  readonly pageSize = model(25);
+  readonly pageSize = model(DEFAULT_PAGE_SIZE);
   protected readonly sizes = PAGE_SIZES;
 
   protected readonly pages = computed(() => pageCount(this.total(), this.pageSize()));

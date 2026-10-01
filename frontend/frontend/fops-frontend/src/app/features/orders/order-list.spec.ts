@@ -67,18 +67,20 @@ describe('OrderListPage', () => {
     expect(api.getOrders).toHaveBeenLastCalledWith({ userId: null, itemId: null, status: 'CANCELLED' });
   });
 
-  it('shows 25 orders per page and pages through the rest', () => {
-    api.getOrders.mockReturnValue(of(Array.from({ length: 30 }, (_, i) => anOrder({ id: 30 - i }))));
+  it('shows 10 orders per page by default and pages through the rest', () => {
+    api.getOrders.mockReturnValue(of(Array.from({ length: 23 }, (_, i) => anOrder({ id: 23 - i }))));
     const { host, fixture } = render();
 
-    expect(host.querySelectorAll('tbody tr')).toHaveLength(25);
-    expect(host.querySelector('.page-header')!.textContent).toContain('30 orders');
+    expect(host.querySelectorAll('tbody tr')).toHaveLength(10);
+    expect(host.querySelector('.page-header')!.textContent).toContain('23 orders');
 
+    host.querySelector<HTMLButtonElement>('app-paginator .next')!.click();
+    fixture.detectChanges();
     host.querySelector<HTMLButtonElement>('app-paginator .next')!.click();
     fixture.detectChanges();
 
     const ids = Array.from(host.querySelectorAll('tbody tr')).map((r) => r.querySelector('td')!.textContent!.trim());
-    expect(ids).toEqual(['#5', '#4', '#3', '#2', '#1']);
+    expect(ids).toEqual(['#3', '#2', '#1']);
   });
 
   it('goes back to the first page when the filters reload the list', () => {
