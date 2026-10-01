@@ -14,7 +14,9 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "order_email_notifications",
-        uniqueConstraints = @UniqueConstraint(name = "uk_order_email_notification_order", columnNames = "order_id"))
+        uniqueConstraints = @UniqueConstraint(name = "uk_order_email_notification_order", columnNames = "order_id"),
+        // Retry scheduler: status = PENDING and next_attempt_at <= now order by next_attempt_at, top 50
+        indexes = @Index(name = "idx_notifications_status_next_attempt", columnList = "status, next_attempt_at"))
 public class OrderNotification {
 
     private static final int MAX_ERROR_LENGTH = 1000;

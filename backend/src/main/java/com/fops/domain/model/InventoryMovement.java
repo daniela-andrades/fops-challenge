@@ -6,7 +6,14 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "inventory_movements")
+@Table(name = "inventory_movements", indexes = {
+        // Item history: item_id = ? order by created_at, id
+        @Index(name = "idx_movements_item_created", columnList = "item_id, created_at, id"),
+        // Movements of an order: order_id = ? order by created_at, id — read under the item lock when cancelling
+        @Index(name = "idx_movements_order_created", columnList = "order_id, created_at, id"),
+        // Allocations fed by a delivery, and the foreign-key check PostgreSQL runs when a movement is deleted
+        @Index(name = "idx_movements_source", columnList = "source_movement_id, id")
+})
 public class InventoryMovement {
 
     @Id
