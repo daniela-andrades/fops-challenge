@@ -17,7 +17,7 @@ scripts/dev.sh seed    # loads the demo data below
 | API | http://localhost:8080/api |
 | Database console | http://localhost:8080/h2-console (JDBC URL is printed by `dev.sh up`, user `sa`, no password) |
 
-The scenarios build on each other; 13 and 14 can run at any point after the seed.
+The scenarios build on each other; 13 to 16 can run at any point after the seed.
 
 Other commands: `scripts/dev.sh status`, `down`, `logs backend|frontend|mail`, `mail-stop`, `mail-start`.
 
@@ -217,6 +217,74 @@ Narrow the browser to phone width (or use device mode in DevTools).
 
 ---
 
+## 15. Idempotent creation (Idempotency-Key)
+
+`POST /api/orders` and `POST /api/inventory/incoming` accept an optional `Idempotency-Key` header. A retry with the same key returns the original resource instead of creating it again. Run from a terminal (Luis = user 2, Mouse = item 4):
+
+```bash
+KEY=$(uuidgen)
+# 1. The same order twice
+curl -s -w ' -> %{http_code}\n' -X POST localhost:8080/api/orders -H 'Content-Type: application/json' \
+     -H "Idempotency-Key: $KEY" -d '{"userId":2,"itemId":4,"requestedQuantity":1}'
+curl -s -w ' -> %{http_code}\n' -X POST localhost:8080/api/orders -H 'Content-Type: application/json' \
+     -H "Idempotency-Key: $KEY" -d '{"userId":2,"itemId":4,"requestedQuantity":1}'
+# 2. Same key, different quantity
+curl -s -w ' -> %{http_code}\n' -X POST localhost:8080/api/orders -H 'Content-Type: application/json' \
+     -H "Idempotency-Key: $KEY" -d '{"userId":2,"itemId":4,"requestedQuantity":9}'
+# 3. A delivery retried with its own key
+DKEY=$(uuidgen)
+for i in 1 2; do curl -s -o /dev/null -w 'delivery -> %{http_code}\n' -X POST localhost:8080/api/inventory/incoming \
+     -H 'Content-Type: application/json' -H "Idempotency-Key: $DKEY" -d '{"itemId":4,"quantity":5,"reason":"Retry test"}'; done
+```
+
+**Expected**
+- Step 1: the first call returns `201`, the second `200` with the **same order id**. Mouse stock drops by 1 only once, and Luis receives a single email in the inbox.
+- Step 2: `409` "Idempotency-Key … was already used for a different request: requestedQuantity 1 stored, 9 requested". No new order.
+- Step 3: `201` then `200`. Mouse stock goes up by 5 only once, and Inventory shows a single "Retry test" movement.
+
+**In the UI**
+1. Open DevTools → Network.
+2. Create an order from the dashboard.
+3. Press Enter twice quickly on another order.
+
+**Expected in the UI**
+- The `POST /api/orders` request carries an `Idempotency-Key` header, and the next order uses a different one.
+- The double Enter creates a single order, because the button stays disabled while the request is in flight.
+
+## 16. Order cancellation
+
+The setup uses its own items, so this works at any point.
+
+1. Dashboard → **Create item**: "Cable", SKU `CAB-001`, initial stock 4.
+2. **Create order**: Luis, Cable, quantity 6.
+3. **Create order**: Marta, Cable, quantity 3.
+4. Orders → open Luis's Cable order → **Cancel order** → read the dialog → confirm.
+5. Check Marta's Cable order, the inbox, Inventory filtered by Cable, and the Orders list (also filter by status *Cancelled*).
+6. Create an item "Adapter" with stock 0, then an order for Ana for 2. Open it and **Cancel order**.
+7. Open Marta's Cable order (now completed).
+8. From a terminal, cancel that completed order, then cancel Luis's order a second time:
+   `curl -s -X POST localhost:8080/api/orders/<id>/cancel`
+
+**Expected**
+- Step 2: "… 66.67% fulfilled (partially fulfilled)", and Cable stock goes to 0.
+- Step 3: "… 0% fulfilled (pending)".
+- Step 4: the dialog says *"Cancelling will return 4 units to stock. They may be automatically allocated to other pending orders."* After confirming:
+  - the toast reads "Order #… cancelled · 4 units returned to stock";
+  - the badge reads **Cancelled**, with a note that the 4 allocated units were returned;
+  - the email panel says *Cancelled orders are not notified*;
+  - the Cancel button disappears.
+- Step 5:
+  - Marta's order is **Completed** 3/3, fed by the returned stock, and her completion email arrives. The cancelled order sends no email.
+  - Cable stock is 1. Inventory shows, in order: IN 4 *Initial stock*, OUT 4 (Luis), IN 4 *Returned to stock - order #… cancelled* (linked to Luis's order), OUT 3 (Marta) whose *Fed by* is that return.
+  - The original OUT 4 is unchanged; corrections are always new rows.
+  - Luis's order stays in the Orders list as Cancelled. It does not appear in the dashboard's *Open orders* panel, and its progress still shows 4/6 with a single allocation.
+- Step 6: the dialog says *"Nothing has been allocated to this order yet, so no stock is returned."* The order is cancelled and no movement is created.
+- Step 7: completed orders show no Cancel button.
+- Step 8: `409` "…already completed and its notification was sent…" for Marta's order, and `409` "Order … is already cancelled" for Luis's.
+- The ledger query from scenario 10 still returns no rows.
+
+---
+
 ## Checklist
 
 | # | Scenario | Result | Notes |
@@ -235,3 +303,5 @@ Narrow the browser to phone width (or use device mode in DevTools).
 | 12 | Layout on small screens | ☐ | |
 | 13 | Catalog maintenance (update and delete) | ☐ | |
 | 14 | Movement corrections | ☐ | |
+| 15 | Idempotent creation (Idempotency-Key) | ☐ | |
+| 16 | Order cancellation | ☐ | |
