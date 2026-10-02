@@ -119,7 +119,7 @@ As a result, at most one order per item is partially fulfilled at any time, and 
 2. Each of its `OUT` movements is returned to stock through a compensating `IN` movement linked to the cancelled order.
 3. Each returned quantity is passed to the same FIFO routine a delivery uses, so the next orders in the queue receive it, and their allocations point to the exact return that fed them.
 
-The cancelled order keeps a record of what it had received, and its trace shows both the allocations and the returns.
+The cancelled order keeps a record of what it had received, and its trace shows both the allocations and the returns. A cancelled order leaves the open and completed counters on the dashboard and remains in the Orders list with its status, where it can be filtered for.
 
 **Idempotent creation.** `POST /api/orders` and `POST /api/inventory/incoming` accept an optional `Idempotency-Key` header, stored in a unique `request_id` column. A client that retries after a timeout gets `200` with the original order or movement instead of a duplicate, and reusing a key with a different payload gets `409`. The unique constraint, not a prior lookup, is what decides, so two concurrent retries cannot both succeed.
 

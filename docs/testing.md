@@ -19,7 +19,7 @@ The suite is organised as a pyramid: many fast tests on the business rules, fewe
 
 ## Business scenarios covered
 
-The five key cases from the spec (section 17) map to named tests in `FulfillmentFlowIT` and `OrderCompletionNotificationIT`:
+The five key cases, described under *How fulfillment works* in the [README](../README.md), map to named tests in `FulfillmentFlowIT` and `OrderCompletionNotificationIT`:
 
 1. Order completed with stock available
 2. Order partially fulfilled when stock is short

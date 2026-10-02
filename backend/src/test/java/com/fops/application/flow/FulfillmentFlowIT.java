@@ -20,7 +20,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * End-to-end business scenarios from the challenge spec (section 17), through the real services and database.
+ * End-to-end business scenarios described under "How fulfillment works" in the README, through the real services and database.
  */
 class FulfillmentFlowIT extends IntegrationTest {
 
