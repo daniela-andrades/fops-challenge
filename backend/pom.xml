@@ -102,6 +102,13 @@
                     <includes>
                         <include>**/*IT.java</include>
                     </includes>
+                    <systemPropertyVariables>
+                        <!-- Testcontainers 1.19.8 defaults to Docker API 1.32 and does not negotiate; current engines
+                             (measured: Engine 29.4.1, minimum API 1.40) reject it with HTTP 400, which
+                             disabledWithoutDocker turns into a silent skip of PostgresIT.
+                             1.41 (Engine 20.10+) is an explicit floor that current and older engines both accept. -->
+                        <api.version>1.41</api.version>
+                    </systemPropertyVariables>
                 </configuration>
                 <executions>
                     <execution>
