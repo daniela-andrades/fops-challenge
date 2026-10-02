@@ -546,7 +546,7 @@ La solución ya quedó definida en su versión ejecutable real con estas tecnolo
 ### 20.2 Estructura real del repositorio
 
 ```text
-fops_challenge/
+fops-challenge/
 ├── backend/
 │   ├── src/main/java/com/fops/
 │   ├── src/test/java/com/fops/
@@ -555,14 +555,17 @@ fops_challenge/
 ├── frontend/
 │   └── frontend/fops-frontend/
 │       ├── src/app
+│       ├── e2e/
 │       ├── package.json
 │       ├── Dockerfile
 │       └── nginx.conf
-├── docker-compose.yml
 ├── docs/
 │   ├── business-logic-and-architecture.md
-│   └── development-plan-by-phase.md
-└── README.txt
+│   ├── manual-testing.md
+│   └── testing.md
+├── scripts/
+├── docker-compose.yml
+└── README.md
 ```
 
 ### 20.3 Implementación completada hasta ahora
