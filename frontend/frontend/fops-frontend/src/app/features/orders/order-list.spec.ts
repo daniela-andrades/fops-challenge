@@ -67,6 +67,18 @@ describe('OrderListPage', () => {
     expect(api.getOrders).toHaveBeenLastCalledWith({ userId: null, itemId: null, status: 'CANCELLED' });
   });
 
+  it('shows no remaining quantity or progress for a cancelled order, but keeps what it had received', () => {
+    api.getOrders.mockReturnValue(of([
+      anOrder({ id: 5, status: 'CANCELLED', requestedQuantity: 20, fulfilledQuantity: 15, remainingQuantity: 5, completionPercent: 75 })
+    ]));
+    const { host } = render();
+
+    const row = host.querySelector('tbody tr')!;
+    const cells = Array.from(row.querySelectorAll('td')).map((td) => td.textContent!.trim());
+    expect(cells.slice(3, 8)).toEqual(['Cancelled', '20', '15', '—', '—']);
+    expect(row.querySelector('app-progress-bar')).toBeNull();
+  });
+
   it('shows 10 orders per page by default and pages through the rest', () => {
     api.getOrders.mockReturnValue(of(Array.from({ length: 23 }, (_, i) => anOrder({ id: 23 - i }))));
     const { host, fixture } = render();

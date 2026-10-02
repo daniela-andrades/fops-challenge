@@ -65,8 +65,14 @@ import { DEFAULT_PAGE_SIZE, matchesSearch, pageOf } from '../../shared/paginatio
                   <td><app-status-badge [value]="order.status" /></td>
                   <td class="num">{{ order.requestedQuantity }}</td>
                   <td class="num">{{ order.fulfilledQuantity }}</td>
-                  <td class="num">{{ order.remainingQuantity }}</td>
-                  <td><app-progress-bar [percent]="order.completionPercent" [status]="order.status" /></td>
+                  @if (order.status === 'CANCELLED') {
+                    <!-- Withdrawn: it owes nothing, and what it had received was returned to stock. -->
+                    <td class="num muted">—</td>
+                    <td class="muted">—</td>
+                  } @else {
+                    <td class="num">{{ order.remainingQuantity }}</td>
+                    <td><app-progress-bar [percent]="order.completionPercent" [status]="order.status" /></td>
+                  }
                   <td class="muted">{{ order.createdAt | date: 'short' }}</td>
                 </tr>
               } @empty {

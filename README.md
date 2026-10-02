@@ -133,7 +133,7 @@ The cancelled order keeps a record of what it had received, and its trace shows 
 |---|---|---|
 | Backend unit (`*Test`) | 140 | JUnit 5 + Mockito, no Spring context |
 | Backend integration (`*IT`) | 90 | Spring Boot on H2, plus `PostgresIT` on PostgreSQL 16 via Testcontainers (0 skipped) |
-| Frontend unit | 121 | Vitest + Angular TestBed |
+| Frontend unit | 122 | Vitest + Angular TestBed |
 | End to end | 12 | Playwright, real browser against the real backend |
 
 Backend coverage across unit and integration tests is 91.4% of lines and 87.1% of branches. The build fails below 80% / 75%.
