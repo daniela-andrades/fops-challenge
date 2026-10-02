@@ -25,7 +25,7 @@ The first build downloads the Maven and npm dependencies and takes a few minutes
 | MailHog, the inbox for order-completed emails | http://localhost:8025 |
 | PostgreSQL | `localhost:5433`, database `fops`, user `fops`, password `password` |
 
-The system comes up with a small demo data set already loaded: three users, four items, and orders that are completed, partially fulfilled and pending. A one-shot `seed` service waits for the backend and runs `scripts/seed-demo-data.sh` through the public API, so stock enters as inventory movements like any other. The script loads nothing into a database that already has users or items, so restarting never duplicates data.
+The system comes up with a small demo data set already loaded: three users, four items, and orders that are completed, partially fulfilled, pending and cancelled. The cancelled order had already received stock, so the movement history shows its original allocation, the compensating return and the re-allocation of those units to the next order in the queue. A one-shot `seed` service waits for the backend and runs `scripts/seed-demo-data.sh` through the public API, so stock enters as inventory movements like any other. The script loads nothing into a database that already has users or items, so restarting never duplicates data.
 
 Stop with `docker compose down`, or with `docker compose down -v` to also delete the database; the next `docker compose up` then loads the demo data again. To start with an empty database instead, turn seeding off:
 

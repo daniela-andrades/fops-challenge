@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Loads demo data through the public API, so it follows every business rule.
 # Resulting state (ready for docs/manual-testing.md):
-#   Laptop   (LAP-001) stock 15  <- order by Ana for 5 was completed from stock (1 email)
+#   Laptop   (LAP-001) stock 12  <- order by Ana for 5 was completed from stock (1 email); Luis's order for 20 took
+#                                   the other 15 and was cancelled: the 15 came back as a compensating IN and 3 of
+#                                   them completed Marta's order, queued behind it (1 email)
 #   Monitor  (MON-001) stock 0   <- order by Luis for 8 is PARTIALLY_FULFILLED (5/8)
 #   Keyboard (KEY-001) stock 0   <- Marta (4, partial 3/4) and then Ana (6, pending) wait in FIFO order
 #   Mouse    (MOU-001) stock 50  <- no orders yet
@@ -54,6 +56,11 @@ echo "  ✔ 4 orders: #$o1 completed, #$o2 partial, #$o3 and #$o4 waiting for ke
 
 in1="$(post inventory/incoming "{\"itemId\":$keyboard,\"quantity\":3,\"reason\":\"Supplier A - partial delivery\"}")"
 echo "  ✔ Incoming movement #$in1: 3 keyboards, allocated to the oldest order (#$o3 is now 3/4)"
+
+o5="$(post orders "{\"userId\":$luis,\"itemId\":$laptop,\"requestedQuantity\":20}")"
+o6="$(post orders "{\"userId\":$marta,\"itemId\":$laptop,\"requestedQuantity\":3}")"
+post "orders/$o5/cancel" "" > /dev/null
+echo "  ✔ Order #$o5 took 15 laptops and was cancelled: they returned to stock and completed #$o6, queued behind it"
 
 echo
 echo "Done. Open http://localhost:4200 and follow docs/manual-testing.md"

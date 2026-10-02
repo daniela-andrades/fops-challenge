@@ -27,7 +27,7 @@ For manual testing, email retries are shortened to 10 s, 20 s, 40 s and 4 attemp
 
 | Item | SKU | Stock | Orders |
 |---|---|---|---|
-| Laptop | LAP-001 | 15 | #1 Ana, 5 units, **Completed** from stock |
+| Laptop | LAP-001 | 12 | #1 Ana, 5 units, **Completed** from stock<br>#5 Luis, 20 units, **Cancelled** after receiving 15: OUT #8, returned by IN #9<br>#6 Marta, 3 units, **Completed** from that return (OUT #10, fed by IN #9) |
 | Monitor | MON-001 | 0 | #2 Luis, 8 units, **Partial** 5/8 |
 | Keyboard | KEY-001 | 0 | #3 Marta, 4 units, **Partial** 3/4 (fed by incoming movement #6)<br>#4 Ana, 6 units, **Pending**, queued after #3 |
 | Mouse | MOU-001 | 50 | none |
@@ -42,29 +42,30 @@ Users: Ana Garcia (`ana@fops.local`), Luis Perez (`luis@fops.local`), Marta Ruiz
 
 **Expected**
 - Open orders **3** (1 pending · 2 partial).
-- Completed orders **1** (1 email sent).
+- Completed orders **2** (2 emails sent).
 - Open demand **10** (3 monitors + 1 + 6 keyboards).
-- Stock on hand **65** (4 items · 2 out of stock).
+- Stock on hand **62** (4 items · 2 out of stock).
 - Users **3**.
 - *Open orders* lists #2, #3 and #4 with progress bars. *Latest movements* is newest first.
-- The dev inbox has one email: "Order #1 completed", to ana@fops.local.
+- The dev inbox has two emails: "Order #1 completed" to ana@fops.local and "Order #6 completed" to marta@fops.local. The cancelled order #5 sent none.
+- Orders shows all four statuses; filter by *Cancelled* to find #5. Inventory filtered by Laptop shows OUT #8 (to #5) unchanged, IN #9 *Returned to stock - order #5 cancelled*, and OUT #10 to #6 fed by IN #9.
 
 ## 2. Order completed from stock
 
 1. Create order: Luis, Mouse, quantity 10.
 
 **Expected**
-- Toast: "Order #5 created · 100% fulfilled (completed)".
+- Toast: "Order #7 created · 100% fulfilled (completed)".
 - Mouse stock drops to 40.
-- Within a few seconds the inbox shows "Order #5 completed" to luis@fops.local, with dates shown as `yyyy-MM-dd HH:mm`.
-- Orders → #5: Completion 100%. Covered by 1 movement · single shipment. History row shows *Stock on hand* as the source and *Completed the order*. Completion email is **Sent**.
+- Within a few seconds the inbox shows "Order #7 completed" to luis@fops.local, with dates shown as `yyyy-MM-dd HH:mm`.
+- Orders → #7: Completion 100%. Covered by 1 movement · single shipment. History row shows *Stock on hand* as the source and *Completed the order*. Completion email is **Sent**.
 
 ## 3. Partial fulfillment
 
-1. Create order: Marta, Laptop, quantity 20 (only 15 in stock).
+1. Create order: Marta, Laptop, quantity 20 (only 12 in stock).
 
 **Expected**
-- Toast: "… 75% fulfilled (partially fulfilled)".
+- Toast: "… 60% fulfilled (partially fulfilled)".
 - Laptop stock becomes 0.
 - No email.
 - The order detail says the email will be sent at 100%.
