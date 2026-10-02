@@ -8,7 +8,7 @@ Spring Boot 3.3 (Java 21) and PostgreSQL 16 on the backend, Angular 21 on the fr
 
 ### With Docker (recommended)
 
-Prerequisites: Docker with Compose v2. Ports 4200, 8080, 8025, 1025 and 5433 must be free.
+Prerequisites: Docker with Compose v2. Ports 4200, 8080, 8025, 1025 and 5433 must be free. On Windows, Docker Desktop requires WSL 2. Nothing else is needed on the host: the build and the demo data both run inside containers.
 
 ```bash
 git clone https://github.com/daniela-andrades/fops-challenge.git
@@ -16,7 +16,7 @@ cd fops-challenge
 docker compose up --build
 ```
 
-The first build downloads the Maven and npm dependencies and takes a few minutes. Then open:
+The first build downloads the Maven and npm dependencies and takes 5 to 10 minutes, depending on the machine and connection; later starts take seconds. The images are built before any container starts, and the seed service then waits for the backend to answer before it loads the data (for up to 5 minutes of startup), so there is nothing to time by hand. Then open:
 
 | What | URL |
 |---|---|
@@ -30,18 +30,23 @@ The system comes up with a small demo data set already loaded: three users, four
 Stop with `docker compose down`, or with `docker compose down -v` to also delete the database; the next `docker compose up` then loads the demo data again. To start with an empty database instead, turn seeding off:
 
 ```bash
-SEED_DEMO_DATA=false docker compose up
+SEED_DEMO_DATA=false docker compose up              # macOS, Linux, Git Bash
+$env:SEED_DEMO_DATA="false"; docker compose up      # Windows PowerShell
 ```
 
-The script also loads the demo data by hand into a running, empty system: `scripts/seed-demo-data.sh`.
+To load the demo data into a running, empty system later, run the seed service again. It needs no tools on the host:
+
+```bash
+docker compose run --rm seed
+```
 
 ### Development mode (without Docker)
 
-Prerequisites: JDK 21, Maven 3.9, Node 22 with npm, and Python 3 (for the local mail inbox).
+Prerequisites: JDK 21, Maven 3.9, Node 22 with npm, and Python 3 (for the local mail inbox and the seed script).
 
 ```bash
 scripts/dev.sh up       # builds the backend, starts backend, frontend and a local mail inbox
-scripts/dev.sh seed     # loads the demo data
+scripts/dev.sh seed     # loads the demo data (runs scripts/seed-demo-data.sh)
 scripts/dev.sh status   # shows what is running
 scripts/dev.sh down     # stops everything
 ```
