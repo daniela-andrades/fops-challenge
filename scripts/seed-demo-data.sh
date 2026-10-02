@@ -25,10 +25,10 @@ post() {
 
 curl -s -o /dev/null "$API/dashboard/summary" || { echo "Backend is not reachable at $API. Start it with: scripts/dev.sh up" >&2; exit 1; }
 
-existing="$(curl -s "$API/users" | python3 -c 'import sys, json; print(len(json.load(sys.stdin)))')"
+existing="$(curl -s "$API/dashboard/summary" | python3 -c 'import sys, json; d = json.load(sys.stdin); print(d["totalUsers"] + d["totalItems"])')"
 if [ "$existing" -gt 0 ] && [ "${1:-}" != "--force" ]; then
-  echo "The database already has $existing user(s); nothing loaded."
-  echo "Run 'scripts/dev.sh reset && scripts/dev.sh up' for a clean start, or pass --force."
+  echo "The database already has data; nothing was loaded."
+  echo "To start clean: 'docker compose down -v' (Docker) or 'scripts/dev.sh reset' (development mode). To load anyway, pass --force."
   exit 0
 fi
 

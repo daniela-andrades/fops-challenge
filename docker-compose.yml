@@ -58,5 +58,17 @@ services:
     ports:
       - "4200:80"
 
+  seed:
+    build:
+      context: ./scripts
+      dockerfile: seed.Dockerfile
+    container_name: fops-seed
+    restart: "no"
+    depends_on:
+      - backend
+    environment:
+      API_URL: http://backend:8080/api
+      SEED_DEMO_DATA: ${SEED_DEMO_DATA:-true}
+
 volumes:
   postgres_data:
